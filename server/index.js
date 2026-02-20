@@ -23,25 +23,28 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', version: '1.0.0' });
 });
 
-// Download endpoint with SSE
+// Download endpoint with Server-Sent Events (SSE) for real-time progress updates
 app.post('/api/download', async (req, res) => {
   const { url, downloadPath, quality, metadata } = req.body;
 
+  // Validate that a URL is provided
   if (!url) {
     return res.status(400).json({ error: 'URL is required' });
   }
 
-  // Set up SSE headers
+  // Set up SSE headers to keep the connection open and stream data
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
-  res.flushHeaders();
+  res.flushHeaders(); // Ensure headers are sent immediately
 
+  // Helper function to send SSE events to the client
   const sendEvent = (type, data) => {
     res.write(`event: ${type}\n`);
     res.write(`data: ${JSON.stringify(data)}\n\n`);
   };
 
+  // Determine the output directory (user-provided or default)
   const outputDir = downloadPath || DEFAULT_DOWNLOAD_DIR;
 
   // Create directory if it doesn't exist
@@ -54,19 +57,21 @@ app.post('/api/download', async (req, res) => {
     }
   }
 
+  // Configure yt-dlp arguments
   const flags = {
-    output: path.join(outputDir, '%(title)s.%(ext)s'),
-    ffmpegLocation: ffmpegStatic,
+    output: path.join(outputDir, '%(title)s.%(ext)s'), // Output filename template
+    ffmpegLocation: ffmpegStatic, // Use the static FFmpeg binary
     noWarnings: true,
     preferFreeFormats: true,
   };
 
-  // Quality settings
+  // Configure Quality settings based on user selection
   if (quality === 'audio') {
+    // Audio-only mode (MP3)
     flags.extractAudio = true;
     flags.audioFormat = 'mp3';
   } else {
-    // Video quality
+    // Video quality selection
     if (quality === '1080p') {
       flags.format = 'bestvideo[height<=1080]+bestaudio/best[height<=1080]';
     } else if (quality === '720p') {
@@ -74,11 +79,10 @@ app.post('/api/download', async (req, res) => {
     } else if (quality === '480p') {
       flags.format = 'bestvideo[height<=480]+bestaudio/best[height<=480]';
     } else {
-      // Default to best
+      // Default to best available quality
       flags.format = 'bestvideo+bestaudio/best';
     }
-    // Merge output format to mp4/mkv if needed, but usually default is fine.
-    // Ensure we merge to mp4 for better compatibility if possible
+    // Ensure we merge video+audio into a single MP4 file for compatibility
     flags.mergeOutputFormat = 'mp4';
   }
 

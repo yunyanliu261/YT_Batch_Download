@@ -120,13 +120,38 @@ app.post('/api/download', async (req, res) => {
     res.write(`data: ${JSON.stringify(data)}\n\n`);
   };
 
-  // Determine the output directory (user-provided or default)
-  const outputDir = downloadPath || DEFAULT_DOWNLOAD_DIR;
+  // Determine the base output directory (user-provided or default)
+  let baseOutputDir = downloadPath || DEFAULT_DOWNLOAD_DIR;
 
-  // Create directory if it doesn't exist
-  if (!fs.existsSync(outputDir)) {
+  // Requirement: Create a subfolder based on the Channel Name
+  // We'll fetch the channel info first using a quick probe
+  let channelFolder = '';
+  try {
+    sendEvent('info', { message: 'Fetching channel info to create folder...' });
+    const info = await ytDlp(url, {
+      dumpSingleJson: true,
+      flatPlaylist: true,
+      noWarnings: true
+    });
+
+    // Use 'uploader' (channel name) or 'playlist_title' (if playlist) or fallback to 'UnknownChannel'
+    // Sanitize the name to be safe for file systems
+    const rawName = info.uploader || info.playlist_title || info.channel || 'UnknownChannel';
+    const sanitizedName = rawName.replace(/[<>:"/\\|?*]+/g, '_').trim();
+    channelFolder = sanitizedName;
+
+    sendEvent('info', { message: `Target Folder: ${channelFolder}` });
+  } catch (err) {
+    sendEvent('error', { message: `Warning: Could not detect channel name. using default. (${err.message})` });
+    channelFolder = 'Downloads';
+  }
+
+  const finalOutputDir = path.join(baseOutputDir, channelFolder);
+
+  // Create the final directory (Base + Channel Name) if it doesn't exist
+  if (!fs.existsSync(finalOutputDir)) {
     try {
-      fs.mkdirSync(outputDir, { recursive: true });
+      fs.mkdirSync(finalOutputDir, { recursive: true });
     } catch (err) {
       sendEvent('error', { message: `Failed to create directory: ${err.message}` });
       return res.end();
@@ -135,7 +160,7 @@ app.post('/api/download', async (req, res) => {
 
   // Configure yt-dlp arguments
   const flags = {
-    output: path.join(outputDir, '%(title)s.%(ext)s'), // Output filename template
+    output: path.join(finalOutputDir, '%(title)s.%(ext)s'), // Save inside the channel folder
     ffmpegLocation: ffmpegStatic, // Use the static FFmpeg binary
     noWarnings: true,
     preferFreeFormats: true,
@@ -171,7 +196,7 @@ app.post('/api/download', async (req, res) => {
   }
 
   sendEvent('info', { message: `Starting download for: ${url}` });
-  sendEvent('info', { message: `Output directory: ${outputDir}` });
+  sendEvent('info', { message: `Output directory: ${finalOutputDir}` });
 
   try {
     const subprocess = ytDlp.exec(url, flags);

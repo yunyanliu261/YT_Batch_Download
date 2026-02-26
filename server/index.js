@@ -23,6 +23,82 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', version: '1.0.0' });
 });
 
+/**
+ * Check Dependencies Endpoint
+ * Requirement 1: Verify installed dependencies (ffmpeg, python)
+ */
+app.get('/api/check-dependencies', async (req, res) => {
+  const checkCommand = (cmd) => {
+    return new Promise((resolve) => {
+      require('child_process').exec(cmd, (err) => resolve(!err));
+    });
+  };
+
+  const hasPython = await checkCommand('python3 --version') || await checkCommand('python --version');
+  // ffmpeg-static provides the binary path, so we check if it exists
+  const hasFfmpeg = fs.existsSync(ffmpegStatic);
+
+  res.json({
+    python: hasPython,
+    ffmpeg: hasFfmpeg,
+    ready: hasPython && hasFfmpeg
+  });
+});
+
+/**
+ * Validate Path Endpoint
+ * Requirement 2: Check if download path exists and is writable
+ */
+app.post('/api/check-path', (req, res) => {
+  const { downloadPath } = req.body;
+  const targetPath = downloadPath || DEFAULT_DOWNLOAD_DIR;
+
+  try {
+    if (!fs.existsSync(targetPath)) {
+      // Try to create it to see if we can
+      fs.mkdirSync(targetPath, { recursive: true });
+    }
+    // Check write permission
+    fs.accessSync(targetPath, fs.constants.W_OK);
+    res.json({ valid: true, path: targetPath });
+  } catch (err) {
+    res.json({ valid: false, error: `Path is invalid or not writable: ${err.message}` });
+  }
+});
+
+/**
+ * Get Video/Channel Info Endpoint
+ * Requirement 3: Check website URL and get video count
+ */
+app.post('/api/get-info', async (req, res) => {
+  const { url } = req.body;
+
+  if (!url) {
+    return res.status(400).json({ error: 'URL is required' });
+  }
+
+  try {
+    // fetching info without downloading
+    const info = await ytDlp(url, {
+      dumpSingleJson: true,
+      flatPlaylist: true, // Don't list all videos in detail, just the playlist/channel meta
+      noWarnings: true,
+    });
+
+    const isPlaylist = info._type === 'playlist';
+
+    res.json({
+      title: info.title,
+      uploader: info.uploader,
+      is_playlist: isPlaylist,
+      video_count: isPlaylist ? info.playlist_count : 1,
+      thumbnail: info.thumbnail
+    });
+  } catch (err) {
+    res.status(500).json({ error: `Failed to fetch info: ${err.message}` });
+  }
+});
+
 // Download endpoint with Server-Sent Events (SSE) for real-time progress updates
 app.post('/api/download', async (req, res) => {
   const { url, downloadPath, quality, metadata } = req.body;
@@ -102,12 +178,14 @@ app.post('/api/download', async (req, res) => {
 
     subprocess.stdout.on('data', (data) => {
       const output = data.toString();
-      // Parse progress if possible, or just send raw lines
-      // yt-dlp outputs lines like: [download]  23.5% of 10.00MiB at 2.00MiB/s ETA 00:05
-
       const lines = output.split('\n').filter(line => line.trim() !== '');
       lines.forEach(line => {
-        sendEvent('progress', { raw: line });
+        // Requirement 4: Enhanced status reporting
+        let status = 'downloading';
+        if (line.includes('[download]')) status = 'downloading';
+        if (line.includes('[info]')) status = 'info';
+
+        sendEvent('progress', { raw: line, status });
       });
     });
 

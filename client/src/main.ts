@@ -1,12 +1,16 @@
 import './style.css'
 
 const urlInput = document.getElementById('url-input') as HTMLInputElement;
+const checkUrlBtn = document.getElementById('check-url-btn') as HTMLButtonElement;
+const urlInfo = document.getElementById('url-info') as HTMLDivElement;
 const pathInput = document.getElementById('path-input') as HTMLInputElement;
 const qualitySelect = document.getElementById('quality-select') as HTMLSelectElement;
 const metadataCheck = document.getElementById('metadata-check') as HTMLInputElement;
 const downloadBtn = document.getElementById('download-btn') as HTMLButtonElement;
 const logContainer = document.getElementById('log-container') as HTMLDivElement;
+const systemStatus = document.getElementById('system-status') as HTMLDivElement;
 
+// --- Logger ---
 const appendLog = (message: string, type: 'info' | 'error' | 'success' | 'progress' = 'info') => {
   const div = document.createElement('div');
   div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
@@ -24,6 +28,71 @@ const clearLogs = () => {
   logContainer.innerHTML = '';
 };
 
+// --- Initialization ---
+const checkDependencies = async () => {
+  try {
+    const res = await fetch('http://localhost:3000/api/check-dependencies');
+    const data = await res.json();
+
+    if (data.ready) {
+      systemStatus.textContent = '✅ System Check: Ready (Python & FFmpeg detected)';
+      systemStatus.className = 'text-xs text-center text-green-600 mt-2 font-semibold';
+      downloadBtn.disabled = false;
+    } else {
+      systemStatus.innerHTML = `❌ System Check Failed: <br>Python: ${data.python ? '✅' : '❌'}, FFmpeg: ${data.ffmpeg ? '✅' : '❌'}`;
+      systemStatus.className = 'text-xs text-center text-red-600 mt-2 font-bold';
+      downloadBtn.disabled = true;
+      appendLog('Missing dependencies! Please ensure Python and FFmpeg are installed.', 'error');
+    }
+  } catch (err) {
+    systemStatus.textContent = '❌ Backend not reachable';
+    systemStatus.className = 'text-xs text-center text-red-600 mt-2';
+    downloadBtn.disabled = true;
+  }
+};
+checkDependencies();
+
+// --- Handlers ---
+const performUrlCheck = async () => {
+  const url = urlInput.value.trim();
+  if (!url) return alert('Please enter a URL');
+
+  checkUrlBtn.disabled = true;
+  checkUrlBtn.textContent = 'Checking...';
+  urlInfo.classList.add('hidden');
+  urlInfo.textContent = '';
+
+  try {
+    const res = await fetch('http://localhost:3000/api/get-info', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      urlInfo.classList.remove('hidden');
+      urlInfo.innerHTML = `
+        <div class="font-bold">${data.title}</div>
+        <div>Uploader: ${data.uploader}</div>
+        <div>Type: ${data.is_playlist ? 'Playlist/Channel' : 'Single Video'}</div>
+        <div>Count: ${data.video_count} video(s) found</div>
+      `;
+      appendLog(`Checked URL: Found ${data.video_count} videos from "${data.title}"`, 'success');
+    } else {
+      throw new Error(data.error);
+    }
+  } catch (err: any) {
+    alert(`Error checking URL: ${err.message}`);
+    appendLog(`URL Check Failed: ${err.message}`, 'error');
+  } finally {
+    checkUrlBtn.disabled = false;
+    checkUrlBtn.textContent = 'Check URL';
+  }
+};
+
+checkUrlBtn.addEventListener('click', performUrlCheck);
+
 downloadBtn.addEventListener('click', async () => {
   const url = urlInput.value.trim();
   const path = pathInput.value.trim();
@@ -33,6 +102,26 @@ downloadBtn.addEventListener('click', async () => {
   if (!url) {
     alert('Please enter a YouTube URL');
     return;
+  }
+
+  // Pre-check Path if provided
+  if (path) {
+    try {
+      const pathRes = await fetch('http://localhost:3000/api/check-path', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ downloadPath: path })
+      });
+      const pathData = await pathRes.json();
+      if (!pathData.valid) {
+        appendLog(`Invalid Path: ${pathData.error}`, 'error');
+        alert(`Download path error: ${pathData.error}`);
+        return;
+      }
+    } catch (e) {
+      appendLog('Failed to validate path with server.', 'error');
+      return;
+    }
   }
 
   // UI feedback

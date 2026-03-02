@@ -4,8 +4,17 @@ const urlInput = document.getElementById('url-input') as HTMLInputElement;
 const checkUrlBtn = document.getElementById('check-url-btn') as HTMLButtonElement;
 const urlInfo = document.getElementById('url-info') as HTMLDivElement;
 const pathInput = document.getElementById('path-input') as HTMLInputElement;
+const rememberPathCheck = document.getElementById('remember-path-check') as HTMLInputElement;
 const qualitySelect = document.getElementById('quality-select') as HTMLSelectElement;
-const metadataCheck = document.getElementById('metadata-check') as HTMLInputElement;
+
+// Metadata check elements
+const metaAll = document.getElementById('meta-all') as HTMLInputElement;
+const metaAllLabel = document.getElementById('meta-all-label') as HTMLLabelElement;
+const metaSubs = document.getElementById('meta-subs') as HTMLInputElement;
+const metaThumb = document.getElementById('meta-thumb') as HTMLInputElement;
+const metaJson = document.getElementById('meta-json') as HTMLInputElement;
+const subCheckboxes = [metaSubs, metaThumb, metaJson];
+
 const downloadBtn = document.getElementById('download-btn') as HTMLButtonElement;
 const logContainer = document.getElementById('log-container') as HTMLDivElement;
 const systemStatus = document.getElementById('system-status') as HTMLDivElement;
@@ -29,6 +38,14 @@ const clearLogs = () => {
 };
 
 // --- Initialization ---
+// Load Saved Path Preferences
+const SAVED_PATH_KEY = 'yt_downloader_saved_path';
+const savedPath = localStorage.getItem(SAVED_PATH_KEY);
+if (savedPath) {
+  pathInput.value = savedPath;
+  rememberPathCheck.checked = true;
+}
+
 const checkDependencies = async () => {
   try {
     const res = await fetch('http://localhost:3000/api/check-dependencies');
@@ -53,6 +70,40 @@ const checkDependencies = async () => {
 checkDependencies();
 
 // --- Handlers ---
+// --- Metadata UI Logic ---
+const updateMetaAllState = () => {
+  const allChecked = subCheckboxes.every(c => c.checked);
+  const anyChecked = subCheckboxes.some(c => c.checked);
+
+  if (anyChecked) {
+    // If ANY sub-box is checked, the master box should look checked and say "Clear All"
+    metaAll.checked = allChecked || anyChecked;
+    metaAllLabel.textContent = '取消全部 (Clear All)';
+    metaAllLabel.className = 'ml-2 block text-sm font-semibold cursor-pointer text-red-600 hover:text-red-800';
+  } else {
+    // If ALL are empty, the master box should be unchecked and say "Select All"
+    metaAll.checked = false;
+    metaAllLabel.textContent = '全選 (Select All)';
+    metaAllLabel.className = 'ml-2 block text-sm text-gray-900 font-semibold cursor-pointer hover:text-blue-600';
+  }
+};
+
+metaAll.addEventListener('change', (e) => {
+  const isChecked = (e.target as HTMLInputElement).checked;
+  // User action:
+  // If they click "Select All" (transition to checked) -> Check all
+  // If they click "Clear All" (transition to unchecked) -> Uncheck all
+  subCheckboxes.forEach(cb => cb.checked = isChecked);
+  updateMetaAllState();
+});
+
+subCheckboxes.forEach(cb => {
+  cb.addEventListener('change', updateMetaAllState);
+});
+
+// Initialize metadata state
+updateMetaAllState();
+
 const performUrlCheck = async () => {
   const url = urlInput.value.trim();
   if (!url) return alert('Please enter a URL');
@@ -97,7 +148,20 @@ downloadBtn.addEventListener('click', async () => {
   const url = urlInput.value.trim();
   const path = pathInput.value.trim();
   const quality = qualitySelect.value;
-  const metadata = metadataCheck.checked;
+
+  // Save or Clear Path Preference
+  if (rememberPathCheck.checked && path) {
+    localStorage.setItem(SAVED_PATH_KEY, path);
+  } else {
+    localStorage.removeItem(SAVED_PATH_KEY);
+  }
+
+  // Construct metadata object instead of a single boolean
+  const metadata = {
+    subs: metaSubs.checked,
+    thumbnail: metaThumb.checked,
+    json: metaJson.checked,
+  };
 
   if (!url) {
     alert('Please enter a YouTube URL');
@@ -187,8 +251,6 @@ downloadBtn.addEventListener('click', async () => {
 
           if (eventType === 'progress') {
             // Update log with raw output
-            // yt-dlp output can be frequent. Maybe debounce UI update if needed.
-            // But usually appending is fine.
             if (data.raw) {
                 appendLog(data.raw, 'progress');
             }

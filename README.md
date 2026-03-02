@@ -1,77 +1,88 @@
 # YouTube Downloader Web Application
 
-A lightweight, web-based tool to download YouTube videos or entire channels with a simple UI. Built with Node.js (Express), Vite, TypeScript, and Tailwind CSS.
+A lightweight, local web-based tool to download YouTube videos or entire channels with a simple UI. Built with Node.js (Express), Vite, TypeScript, and Tailwind CSS.
 
 ## Features
 
-- **Download Entire Channels or Single Videos**: Just paste the URL.
+- **Download Channels or Single Videos**: Paste a YouTube URL and automatically organize downloads into subfolders named after the channel/uploader.
+- **Pre-Download Checks**: Built-in verification to check URL validity, display video counts, and ensure the target download path exists and is writable.
+- **Smart Duplicate Prevention**: Automatically tracks downloaded videos using an archive file (`download_archive.txt`). If you restart a channel download, it instantly skips videos you already have.
 - **Select Quality**: Choose from Best (default), 1080p, 720p, 480p, or Audio Only (MP3).
-- **Metadata Support**: Optionally download thumbnails, subtitles, and JSON info.
-- **Custom Download Path**: Specify where files should be saved (absolute path).
-- **Real-time Progress**: View download logs and progress directly in the browser.
+- **Granular Metadata Control**: Optionally download extra files alongside your video. You can select all or pick individually:
+  - Subtitles (`.vtt`)
+  - Thumbnails (`.jpg`/`.webp`)
+  - Info JSON (video description, tags, etc.)
+- **Custom Download Path**: Specify exactly where files should be saved on your machine.
+- **Real-time Progress**: View download logs, status, and progress directly in the browser UI.
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) (v16 or higher)
-- [Python 3](https://www.python.org/) (required by `yt-dlp`)
-- [FFmpeg](https://ffmpeg.org/) (optional, but recommended for merging video/audio streams; the app uses `ffmpeg-static` automatically if available).
+To run this application, you must have the following installed on your system:
 
-## Installation
+1.  [Node.js](https://nodejs.org/) (v18 or higher recommended)
+2.  [Python 3](https://www.python.org/downloads/) (Required by the underlying `yt-dlp` engine. Ensure it is added to your system PATH during installation).
+3.  [FFmpeg](https://ffmpeg.org/) (The app attempts to use a bundled `ffmpeg-static` version automatically, but having it installed globally is recommended as a fallback for merging video/audio streams).
 
-1.  **Clone the repository:**
-    ```bash
-    git clone <repository-url>
-    cd <repository-folder>
-    ```
+## Installation & Running (Windows)
 
-2.  **Install Backend Dependencies:**
+For Windows users, starting the app is completely automated.
+
+1.  Clone or download this repository to your local machine.
+2.  Double-click the `start_app.bat` file in the root directory.
+3.  The script will automatically:
+    - Check if Node.js is installed.
+    - Install all necessary dependencies for the server and client (if missing).
+    - Start the backend server (Port 3000) and frontend UI server in the background.
+    - Open your default web browser to the application page.
+4.  To stop the application, simply press any key in the command prompt window that opened, and it will safely terminate the background processes.
+
+## Installation & Running (Mac/Linux)
+
+1.  **Install Backend Dependencies:**
     ```bash
     cd server
     npm install
     ```
 
-3.  **Install Frontend Dependencies:**
+2.  **Install Frontend Dependencies:**
     ```bash
     cd ../client
     npm install
     ```
 
-## Running the Application
+3.  **Start the Application:**
+    You will need two terminal windows.
 
-You need to run both the backend server and the frontend client.
-
-1.  **Start the Backend Server:**
-    Open a terminal in the root directory:
+    *Terminal 1 (Backend):*
     ```bash
     cd server
     node index.js
     ```
-    The server will start on `http://localhost:3000`.
 
-2.  **Start the Frontend Client:**
-    Open a second terminal in the root directory:
+    *Terminal 2 (Frontend):*
     ```bash
     cd client
     npm run dev
     ```
-    Click the link provided (usually `http://localhost:5173`) to open the UI in your browser.
+    Click the local link provided in Terminal 2 (usually `http://localhost:5173`) to open the UI.
 
-## Usage
+## Usage Guide
 
-1.  Open the web interface.
+1.  **System Check**: Upon opening the page, look for the "System Check" indicator at the bottom. It should say "Ready" and confirm Python and FFmpeg are detected.
 2.  **YouTube URL**: Paste the link to a video or a channel main page.
-3.  **Download Path**: (Optional) Enter an absolute path on your machine (e.g., `C:\Users\You\Downloads` or `/home/user/downloads`). If left empty, files will be saved in `server/downloads`.
-4.  **Quality**: Select your desired resolution or "Audio Only".
-5.  **Metadata**: Check the box if you want subtitles and thumbnails.
-6.  Click **Start Download**.
-7.  Watch the "Progress Log" for real-time updates.
+3.  **Check URL**: Click this button *before* downloading. It will query YouTube and display the video title, uploader name, and how many videos will be downloaded (useful for channels).
+4.  **Download Path**: (Optional) Enter an absolute path on your machine (e.g., `C:\Users\You\Downloads` or `/home/user/downloads`). If left empty, files will be saved in `server/downloads`.
+5.  **Quality**: Select your desired resolution.
+6.  **Download Metadata**: Use the checkboxes to select extra files you want saved alongside the video. Hover over the `?` icon for more information.
+7.  Click **Start Download**. The "Progress Log" will display real-time updates as `yt-dlp` processes your request.
 
 ## Troubleshooting
 
--   **403 Forbidden Error**: YouTube often blocks cloud server IPs (like AWS, Azure, Replit). This tool is designed to run on a **local machine** (your home PC/laptop) where such blocks are less common.
--   **FFmpeg Error**: If merging formats fails, ensure you have FFmpeg installed or that `ffmpeg-static` (included in dependencies) is working correctly on your OS.
+-   **"System Check Failed"**: Ensure Python 3 is installed and added to your system's Environment Variables (PATH).
+-   **403 Forbidden Error**: YouTube actively blocks cloud server IP addresses (like AWS, Azure, Replit). This tool is designed to run locally on your home computer, where IP blocking is rare.
+-   **Files missing audio/video**: Ensure FFmpeg is available on your system so the tool can merge the best video and best audio streams together.
 
 ## Tech Stack
 
--   **Backend**: Node.js, Express, `yt-dlp-exec` (wrapper for `yt-dlp`).
--   **Frontend**: Vite, TypeScript, Tailwind CSS.
+-   **Backend**: Node.js, Express, `yt-dlp-exec` (wrapper for the powerful `yt-dlp` binary).
+-   **Frontend**: Vite, Vanilla TypeScript, Tailwind CSS.

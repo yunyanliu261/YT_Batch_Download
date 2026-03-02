@@ -187,12 +187,17 @@ app.post('/api/download', async (req, res) => {
     flags.mergeOutputFormat = 'mp4';
   }
 
-  // Metadata settings
+  // Metadata settings based on object
+  // Expecting: { subs: boolean, thumbnail: boolean, json: boolean }
   if (metadata) {
-    flags.writeThumbnail = true;
-    flags.writeSubs = true;
-    flags.writeInfoJson = true;
-    flags.addMetadata = true;
+    if (metadata.thumbnail) flags.writeThumbnail = true;
+    if (metadata.subs) flags.writeSubs = true;
+    if (metadata.json) flags.writeInfoJson = true;
+
+    // Always embed metadata if any of the above are selected, or if asked explicitly
+    if (metadata.thumbnail || metadata.subs || metadata.json) {
+       flags.addMetadata = true;
+    }
   }
 
   sendEvent('info', { message: `Starting download for: ${url}` });

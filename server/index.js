@@ -164,6 +164,8 @@ app.post('/api/download', async (req, res) => {
     ffmpegLocation: ffmpegStatic, // Use the static FFmpeg binary
     noWarnings: true,
     preferFreeFormats: true,
+    // Prevent duplicate downloads using an archive file
+    downloadArchive: path.join(finalOutputDir, 'download_archive.txt'),
   };
 
   // Configure Quality settings based on user selection

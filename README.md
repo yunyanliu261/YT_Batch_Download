@@ -4,6 +4,7 @@ A lightweight, local web-based tool to download YouTube videos or entire channel
 
 ## Features
 
+- **Dual-Language UI**: Seamlessly switch between English and Traditional Chinese (繁體中文). Your preference is saved automatically.
 - **Download Channels or Single Videos**: Paste a YouTube URL and automatically organize downloads into subfolders named after the channel/uploader.
 - **Pre-Download Checks**: Built-in verification to check URL validity, display video counts, and ensure the target download path exists and is writable.
 - **Smart Duplicate Prevention**: Automatically tracks downloaded videos using an archive file (`download_archive.txt`). If you restart a channel download, it instantly skips videos you already have.
@@ -68,8 +69,9 @@ For Windows users, starting the app is completely automated.
 
 ## Usage Guide
 
-1.  **System Check**: Upon opening the page, look for the "System Check" indicator at the bottom. It should say "Ready" and confirm Python and FFmpeg are detected.
-2.  **YouTube URL**: Paste the link to a video or a channel main page.
+1.  **Language Selection**: Use the toggle at the top right to select your preferred language.
+2.  **System Check**: Upon opening the page, look for the "System Check" indicator at the bottom. It should say "Ready" and confirm Python and FFmpeg are detected.
+3.  **YouTube URL**: Paste the link to a video or a channel main page.
 3.  **Check URL**: Click this button *before* downloading. It will query YouTube and display the video title, uploader name, and how many videos will be downloaded (useful for channels).
 4.  **Download Path**: (Optional) Enter an absolute path on your machine (e.g., `C:\Users\You\Downloads` or `/home/user/downloads`). If left empty, files will be saved in `server/downloads`.
 5.  **Quality**: Select your desired resolution.

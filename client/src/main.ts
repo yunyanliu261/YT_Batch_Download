@@ -19,6 +19,157 @@ const downloadBtn = document.getElementById('download-btn') as HTMLButtonElement
 const logContainer = document.getElementById('log-container') as HTMLDivElement;
 const systemStatus = document.getElementById('system-status') as HTMLDivElement;
 
+// Language Elements
+const langZhBtn = document.getElementById('lang-zh') as HTMLButtonElement;
+const langEnBtn = document.getElementById('lang-en') as HTMLButtonElement;
+
+// --- i18n Dictionary ---
+const i18n = {
+  en: {
+    appTitle: 'YouTube Downloader',
+    urlLabel: 'YouTube URL (Video or Channel)',
+    urlPlaceholder: 'https://www.youtube.com/...',
+    checkUrlBtn: 'Check URL',
+    pathLabel: 'Download Path (Optional)',
+    pathPlaceholder: 'Absolute path or leave empty for default',
+    pathHelper: "If empty, defaults to server's 'downloads' folder.",
+    rememberPath: 'Remember Path',
+    qualityLabel: 'Quality / Format',
+    qualityBest: 'Best Quality (Video+Audio)',
+    qualityAudio: 'Audio Only (MP3)',
+    metadataLabel: 'Download Metadata',
+    metadataTooltip: 'Extra files saved alongside your video (e.g., .vtt for subs, .webp for thumbnails, .json for description and tags).',
+    selectAll: 'Select All',
+    clearAll: 'Clear All',
+    metaSubs: 'Subtitles (.vtt)',
+    metaThumb: 'Thumbnail (.jpg/.webp)',
+    metaJson: 'Info JSON (.info.json)',
+    startDownload: 'Start Download',
+    checkingSystem: 'Checking system dependencies...',
+    sysReady: '✅ System Check: Ready (Python & FFmpeg detected)',
+    sysFailed: '❌ System Check Failed: ',
+    sysUnreachable: '❌ Backend not reachable',
+    progressLogLabel: 'Progress Log',
+    waitingInput: 'Waiting for input...',
+    viewSource: 'View Source Code',
+    alertNoUrl: 'Please enter a URL',
+    alertPathError: 'Download path error: ',
+    logSysMissing: 'Missing dependencies! Please ensure Python and FFmpeg are installed.',
+    logChecking: 'Checking...',
+    logTypePlaylist: 'Playlist/Channel',
+    logTypeVideo: 'Single Video',
+    logCountFound: 'video(s) found',
+    logUploader: 'Uploader: ',
+    logType: 'Type: ',
+    logCount: 'Count: ',
+    logCheckSuccess: 'Checked URL: Found',
+    logCheckFailed: 'URL Check Failed: ',
+    logPathInvalid: 'Invalid Path: ',
+    logPathFailed: 'Failed to validate path with server.',
+    logStartDownload: 'Starting download for: ',
+    logProcessFinished: 'Process finished.',
+    uiDownloading: 'Downloading...'
+  },
+  zh: {
+    appTitle: 'YouTube 影片下載器',
+    urlLabel: 'YouTube 網址 (影片或頻道)',
+    urlPlaceholder: '輸入 https://www.youtube.com/...',
+    checkUrlBtn: '檢查網址',
+    pathLabel: '下載路徑 (選填)',
+    pathPlaceholder: '輸入絕對路徑，留空則使用預設資料夾',
+    pathHelper: '若留空，將儲存至伺服器的 "downloads" 資料夾。',
+    rememberPath: '記住路徑',
+    qualityLabel: '畫質 / 格式',
+    qualityBest: '最佳畫質 (影片+音訊)',
+    qualityAudio: '僅音訊 (MP3)',
+    metadataLabel: '下載中介資料 (Metadata)',
+    metadataTooltip: '與影片一併儲存的額外檔案 (例如：.vtt 字幕、.webp 縮圖、.json 影片資訊與標籤)。',
+    selectAll: '全選 (Select All)',
+    clearAll: '取消全部 (Clear All)',
+    metaSubs: '字幕 (.vtt)',
+    metaThumb: '縮圖 (.jpg/.webp)',
+    metaJson: '影片資訊 (.info.json)',
+    startDownload: '開始下載',
+    checkingSystem: '正在檢查系統環境...',
+    sysReady: '✅ 系統檢查：就緒 (已偵測到 Python 與 FFmpeg)',
+    sysFailed: '❌ 系統檢查失敗：',
+    sysUnreachable: '❌ 無法連接後端伺服器',
+    progressLogLabel: '進度日誌',
+    waitingInput: '等待輸入中...',
+    viewSource: '查看原始碼',
+    alertNoUrl: '請輸入網址',
+    alertPathError: '下載路徑錯誤：',
+    logSysMissing: '缺少必要套件！請確認已安裝 Python 與 FFmpeg。',
+    logChecking: '檢查中...',
+    logTypePlaylist: '播放清單 / 頻道',
+    logTypeVideo: '單一影片',
+    logCountFound: '部影片',
+    logUploader: '上傳者：',
+    logType: '類型：',
+    logCount: '數量：',
+    logCheckSuccess: '網址檢查完畢：共找到',
+    logCheckFailed: '網址檢查失敗：',
+    logPathInvalid: '無效的路徑：',
+    logPathFailed: '無法向伺服器驗證路徑。',
+    logStartDownload: '開始下載：',
+    logProcessFinished: '處理完成。',
+    uiDownloading: '下載中...'
+  }
+};
+
+let currentLang: 'en' | 'zh' = (localStorage.getItem('yt_downloader_lang') as 'en' | 'zh') || 'zh';
+
+const t = (key: keyof typeof i18n['en']) => {
+  return i18n[currentLang][key] || i18n['en'][key];
+};
+
+const applyLanguage = () => {
+  // Update UI text
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    const key = el.getAttribute('data-i18n') as keyof typeof i18n['en'];
+    if (key && i18n[currentLang][key]) {
+      el.textContent = i18n[currentLang][key];
+    }
+  });
+
+  // Update Placeholders
+  document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+    const key = el.getAttribute('data-i18n-placeholder') as keyof typeof i18n['en'];
+    if (key && i18n[currentLang][key]) {
+      (el as HTMLInputElement).placeholder = i18n[currentLang][key];
+    }
+  });
+
+  // Re-run state updates to refresh dynamic text (like Select All/Clear All)
+  updateMetaAllState();
+
+  // Highlight active language button
+  if (currentLang === 'zh') {
+    langZhBtn.classList.add('text-blue-600', 'font-extrabold');
+    langZhBtn.classList.remove('text-gray-500');
+    langEnBtn.classList.add('text-gray-500');
+    langEnBtn.classList.remove('text-blue-600', 'font-extrabold');
+  } else {
+    langEnBtn.classList.add('text-blue-600', 'font-extrabold');
+    langEnBtn.classList.remove('text-gray-500');
+    langZhBtn.classList.add('text-gray-500');
+    langZhBtn.classList.remove('text-blue-600', 'font-extrabold');
+  }
+};
+
+langZhBtn.addEventListener('click', () => {
+  currentLang = 'zh';
+  localStorage.setItem('yt_downloader_lang', 'zh');
+  applyLanguage();
+});
+
+langEnBtn.addEventListener('click', () => {
+  currentLang = 'en';
+  localStorage.setItem('yt_downloader_lang', 'en');
+  applyLanguage();
+});
+
+
 // --- Logger ---
 const appendLog = (message: string, type: 'info' | 'error' | 'success' | 'progress' = 'info') => {
   const div = document.createElement('div');
@@ -52,22 +203,22 @@ const checkDependencies = async () => {
     const data = await res.json();
 
     if (data.ready) {
-      systemStatus.textContent = '✅ System Check: Ready (Python & FFmpeg detected)';
+      systemStatus.textContent = t('sysReady');
       systemStatus.className = 'text-xs text-center text-green-600 mt-2 font-semibold';
       downloadBtn.disabled = false;
     } else {
-      systemStatus.innerHTML = `❌ System Check Failed: <br>Python: ${data.python ? '✅' : '❌'}, FFmpeg: ${data.ffmpeg ? '✅' : '❌'}`;
+      systemStatus.innerHTML = `${t('sysFailed')} <br>Python: ${data.python ? '✅' : '❌'}, FFmpeg: ${data.ffmpeg ? '✅' : '❌'}`;
       systemStatus.className = 'text-xs text-center text-red-600 mt-2 font-bold';
       downloadBtn.disabled = true;
-      appendLog('Missing dependencies! Please ensure Python and FFmpeg are installed.', 'error');
+      appendLog(t('logSysMissing'), 'error');
     }
   } catch (err) {
-    systemStatus.textContent = '❌ Backend not reachable';
+    systemStatus.textContent = t('sysUnreachable');
     systemStatus.className = 'text-xs text-center text-red-600 mt-2';
     downloadBtn.disabled = true;
   }
 };
-checkDependencies();
+
 
 // --- Handlers ---
 // --- Metadata UI Logic ---
@@ -76,14 +227,12 @@ const updateMetaAllState = () => {
   const anyChecked = subCheckboxes.some(c => c.checked);
 
   if (anyChecked) {
-    // If ANY sub-box is checked, the master box should look checked and say "Clear All"
     metaAll.checked = allChecked || anyChecked;
-    metaAllLabel.textContent = '取消全部 (Clear All)';
+    metaAllLabel.textContent = t('clearAll');
     metaAllLabel.className = 'ml-2 block text-sm font-semibold cursor-pointer text-red-600 hover:text-red-800';
   } else {
-    // If ALL are empty, the master box should be unchecked and say "Select All"
     metaAll.checked = false;
-    metaAllLabel.textContent = '全選 (Select All)';
+    metaAllLabel.textContent = t('selectAll');
     metaAllLabel.className = 'ml-2 block text-sm text-gray-900 font-semibold cursor-pointer hover:text-blue-600';
   }
 };
@@ -106,10 +255,10 @@ updateMetaAllState();
 
 const performUrlCheck = async () => {
   const url = urlInput.value.trim();
-  if (!url) return alert('Please enter a URL');
+  if (!url) return alert(t('alertNoUrl'));
 
   checkUrlBtn.disabled = true;
-  checkUrlBtn.textContent = 'Checking...';
+  checkUrlBtn.textContent = t('logChecking');
   urlInfo.classList.add('hidden');
   urlInfo.textContent = '';
 
@@ -123,22 +272,23 @@ const performUrlCheck = async () => {
 
     if (res.ok) {
       urlInfo.classList.remove('hidden');
+      const typeText = data.is_playlist ? t('logTypePlaylist') : t('logTypeVideo');
       urlInfo.innerHTML = `
         <div class="font-bold">${data.title}</div>
-        <div>Uploader: ${data.uploader}</div>
-        <div>Type: ${data.is_playlist ? 'Playlist/Channel' : 'Single Video'}</div>
-        <div>Count: ${data.video_count} video(s) found</div>
+        <div>${t('logUploader')} ${data.uploader}</div>
+        <div>${t('logType')} ${typeText}</div>
+        <div>${t('logCount')} ${data.video_count} ${t('logCountFound')}</div>
       `;
-      appendLog(`Checked URL: Found ${data.video_count} videos from "${data.title}"`, 'success');
+      appendLog(`${t('logCheckSuccess')} ${data.video_count} ${t('logCountFound')} ("${data.title}")`, 'success');
     } else {
       throw new Error(data.error);
     }
   } catch (err: any) {
-    alert(`Error checking URL: ${err.message}`);
-    appendLog(`URL Check Failed: ${err.message}`, 'error');
+    alert(`${t('logCheckFailed')} ${err.message}`);
+    appendLog(`${t('logCheckFailed')} ${err.message}`, 'error');
   } finally {
     checkUrlBtn.disabled = false;
-    checkUrlBtn.textContent = 'Check URL';
+    checkUrlBtn.textContent = t('checkUrlBtn');
   }
 };
 
@@ -164,7 +314,7 @@ downloadBtn.addEventListener('click', async () => {
   };
 
   if (!url) {
-    alert('Please enter a YouTube URL');
+    alert(t('alertNoUrl'));
     return;
   }
 
@@ -178,21 +328,21 @@ downloadBtn.addEventListener('click', async () => {
       });
       const pathData = await pathRes.json();
       if (!pathData.valid) {
-        appendLog(`Invalid Path: ${pathData.error}`, 'error');
-        alert(`Download path error: ${pathData.error}`);
+        appendLog(`${t('logPathInvalid')} ${pathData.error}`, 'error');
+        alert(`${t('alertPathError')} ${pathData.error}`);
         return;
       }
     } catch (e) {
-      appendLog('Failed to validate path with server.', 'error');
+      appendLog(t('logPathFailed'), 'error');
       return;
     }
   }
 
   // UI feedback
   downloadBtn.disabled = true;
-  downloadBtn.textContent = 'Downloading...';
+  downloadBtn.textContent = t('uiDownloading');
   clearLogs();
-  appendLog(`Starting download for: ${url}`, 'info');
+  appendLog(`${t('logStartDownload')} ${url}`, 'info');
 
   try {
     const response = await fetch('http://localhost:3000/api/download', {
@@ -269,7 +419,11 @@ downloadBtn.addEventListener('click', async () => {
     appendLog(`Error: ${error.message}`, 'error');
   } finally {
     downloadBtn.disabled = false;
-    downloadBtn.textContent = 'Start Download';
-    appendLog('Process finished.', 'info');
+    downloadBtn.textContent = t('startDownload');
+    appendLog(t('logProcessFinished'), 'info');
   }
 });
+
+// Run localization on mount
+applyLanguage();
+checkDependencies();

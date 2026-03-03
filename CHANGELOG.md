@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased] - 2024-02-26
+## [1.1.0] - 2026-03-03
 
 ### Added
 - **Dual-Language Support (i18n)**: Implemented full language switching between English and Traditional Chinese (繁體中文). The preference is saved locally.
@@ -23,7 +23,7 @@ All notable changes to this project will be documented in this file.
 - Fixed an issue where the download path would not default correctly if left empty.
 - Corrected package.json versions to use stable release channels.
 
-## [1.0.0] - Initial Setup
+## [1.0.0] - 2026-02-16
 ### Added
 - Basic Node.js Express backend integrating `yt-dlp-exec`.
 - Vanilla TypeScript + Vite + Tailwind CSS frontend.

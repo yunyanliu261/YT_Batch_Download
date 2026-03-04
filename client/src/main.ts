@@ -6,7 +6,7 @@ const urlInfo = document.getElementById('url-info') as HTMLDivElement;
 const pathInput = document.getElementById('path-input') as HTMLInputElement;
 const rememberPathCheck = document.getElementById('remember-path-check') as HTMLInputElement;
 const qualitySelect = document.getElementById('quality-select') as HTMLSelectElement;
-const cookieSelect = document.getElementById('cookie-select') as HTMLSelectElement;
+const cookieInput = document.getElementById('cookie-input') as HTMLInputElement;
 
 // Metadata check elements
 const metaAll = document.getElementById('meta-all') as HTMLInputElement;
@@ -38,9 +38,9 @@ const i18n = {
     qualityLabel: 'Quality / Format',
     qualityBest: 'Best Quality (Video+Audio)',
     qualityAudio: 'Audio Only (MP3)',
-    cookieLabel: 'Cookies (Optional)',
-    cookieTooltip: 'Select your browser to bypass age restrictions and login requirements.',
-    cookieNone: 'None (Public Video)',
+    cookieLabel: 'Cookies File (Optional)',
+    cookiePlaceholder: 'e.g. C:\\Users\\cookies.txt',
+    cookieTooltip: 'Paste the absolute path to your cookies.txt file to bypass age restrictions. Use a browser extension like "Get cookies.txt LOCALLY" to export it.',
     metadataLabel: 'Download Metadata',
     metadataTooltip: 'Extra files saved alongside your video (e.g., .vtt for subs, .webp for thumbnails, .json for description and tags).',
     selectAll: 'Select All',
@@ -86,9 +86,9 @@ const i18n = {
     qualityLabel: '畫質 / 格式',
     qualityBest: '最佳畫質 (影片+音訊)',
     qualityAudio: '僅音訊 (MP3)',
-    cookieLabel: '載入瀏覽器 Cookie (可選)',
-    cookieTooltip: '若影片有年齡限制或需要登入，請選擇您有登入 YouTube 的瀏覽器以繞過限制。',
-    cookieNone: '無 (公開影片)',
+    cookieLabel: 'Cookie 檔案路徑 (可選)',
+    cookiePlaceholder: '例如：C:\\Users\\cookies.txt',
+    cookieTooltip: '若影片有年齡限制或需要登入，請貼上您匯出的 cookies.txt 絕對路徑以繞過限制。(推薦使用 "Get cookies.txt LOCALLY" 擴充功能匯出)',
     metadataLabel: '下載中介資料 (Metadata)',
     metadataTooltip: '與影片一併儲存的額外檔案 (例如：.vtt 字幕、.webp 縮圖、.json 影片資訊與標籤)。',
     selectAll: '全選 (Select All)',
@@ -196,12 +196,19 @@ const clearLogs = () => {
 };
 
 // --- Initialization ---
-// Load Saved Path Preferences
+// Load Saved Preferences
 const SAVED_PATH_KEY = 'yt_downloader_saved_path';
+const SAVED_COOKIE_KEY = 'yt_downloader_saved_cookie';
+
 const savedPath = localStorage.getItem(SAVED_PATH_KEY);
 if (savedPath) {
   pathInput.value = savedPath;
   rememberPathCheck.checked = true;
+}
+
+const savedCookie = localStorage.getItem(SAVED_COOKIE_KEY);
+if (savedCookie) {
+  cookieInput.value = savedCookie;
 }
 
 const checkDependencies = async () => {
@@ -275,7 +282,7 @@ const performUrlCheck = async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         url,
-        browser: cookieSelect.value
+        cookiePath: cookieInput.value.trim()
       })
     });
     const data = await res.json();
@@ -308,13 +315,19 @@ downloadBtn.addEventListener('click', async () => {
   const url = urlInput.value.trim();
   const path = pathInput.value.trim();
   const quality = qualitySelect.value;
-  const browser = cookieSelect.value;
+  const cookiePath = cookieInput.value.trim();
 
-  // Save or Clear Path Preference
+  // Save or Clear Preferences
   if (rememberPathCheck.checked && path) {
     localStorage.setItem(SAVED_PATH_KEY, path);
   } else {
     localStorage.removeItem(SAVED_PATH_KEY);
+  }
+
+  if (cookiePath) {
+    localStorage.setItem(SAVED_COOKIE_KEY, cookiePath);
+  } else {
+    localStorage.removeItem(SAVED_COOKIE_KEY);
   }
 
   // Construct metadata object instead of a single boolean
@@ -366,7 +379,7 @@ downloadBtn.addEventListener('click', async () => {
         downloadPath: path,
         quality,
         metadata,
-        browser
+        cookiePath
       }),
     });
 

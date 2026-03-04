@@ -6,6 +6,7 @@ const urlInfo = document.getElementById('url-info') as HTMLDivElement;
 const pathInput = document.getElementById('path-input') as HTMLInputElement;
 const rememberPathCheck = document.getElementById('remember-path-check') as HTMLInputElement;
 const qualitySelect = document.getElementById('quality-select') as HTMLSelectElement;
+const cookieSelect = document.getElementById('cookie-select') as HTMLSelectElement;
 
 // Metadata check elements
 const metaAll = document.getElementById('meta-all') as HTMLInputElement;
@@ -37,6 +38,9 @@ const i18n = {
     qualityLabel: 'Quality / Format',
     qualityBest: 'Best Quality (Video+Audio)',
     qualityAudio: 'Audio Only (MP3)',
+    cookieLabel: 'Cookies (Optional)',
+    cookieTooltip: 'Select your browser to bypass age restrictions and login requirements.',
+    cookieNone: 'None (Public Video)',
     metadataLabel: 'Download Metadata',
     metadataTooltip: 'Extra files saved alongside your video (e.g., .vtt for subs, .webp for thumbnails, .json for description and tags).',
     selectAll: 'Select All',
@@ -82,6 +86,9 @@ const i18n = {
     qualityLabel: '畫質 / 格式',
     qualityBest: '最佳畫質 (影片+音訊)',
     qualityAudio: '僅音訊 (MP3)',
+    cookieLabel: '載入瀏覽器 Cookie (可選)',
+    cookieTooltip: '若影片有年齡限制或需要登入，請選擇您有登入 YouTube 的瀏覽器以繞過限制。',
+    cookieNone: '無 (公開影片)',
     metadataLabel: '下載中介資料 (Metadata)',
     metadataTooltip: '與影片一併儲存的額外檔案 (例如：.vtt 字幕、.webp 縮圖、.json 影片資訊與標籤)。',
     selectAll: '全選 (Select All)',
@@ -266,7 +273,10 @@ const performUrlCheck = async () => {
     const res = await fetch('http://localhost:3000/api/get-info', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url })
+      body: JSON.stringify({
+        url,
+        browser: cookieSelect.value
+      })
     });
     const data = await res.json();
 
@@ -298,6 +308,7 @@ downloadBtn.addEventListener('click', async () => {
   const url = urlInput.value.trim();
   const path = pathInput.value.trim();
   const quality = qualitySelect.value;
+  const browser = cookieSelect.value;
 
   // Save or Clear Path Preference
   if (rememberPathCheck.checked && path) {
@@ -354,7 +365,8 @@ downloadBtn.addEventListener('click', async () => {
         url,
         downloadPath: path,
         quality,
-        metadata
+        metadata,
+        browser
       }),
     });
 

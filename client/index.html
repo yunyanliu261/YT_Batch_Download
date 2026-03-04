@@ -66,7 +66,7 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <!-- Quality Select -->
           <div>
             <label data-i18n="qualityLabel" for="quality-select" class="block text-sm font-medium text-gray-700 mb-1">Quality / Format</label>
@@ -79,6 +79,34 @@
               <option value="720p">720p</option>
               <option value="480p">480p</option>
               <option data-i18n="qualityAudio" value="audio">Audio Only (MP3)</option>
+            </select>
+          </div>
+
+          <!-- Cookies Select -->
+          <div>
+            <div class="flex items-center mb-1">
+              <label data-i18n="cookieLabel" for="cookie-select" class="block text-sm font-medium text-gray-700">Cookies (Optional)</label>
+              <!-- Info Icon with Tooltip -->
+              <div class="relative group ml-2 flex items-center justify-center w-4 h-4 rounded-full bg-gray-200 text-gray-500 hover:bg-gray-300 cursor-help text-xs font-bold">
+                ?
+                <div data-i18n="cookieTooltip" class="absolute bottom-full mb-2 hidden group-hover:block w-56 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10 text-center">
+                  Select your browser to bypass age restrictions and login requirements.
+                  <!-- Tooltip arrow -->
+                  <div class="absolute top-full left-1/2 -ml-1 border-4 border-transparent border-t-gray-800"></div>
+                </div>
+              </div>
+            </div>
+            <select
+              id="cookie-select"
+              class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+            >
+              <option data-i18n="cookieNone" value="none" selected>None (Public Video)</option>
+              <option value="chrome">Google Chrome</option>
+              <option value="edge">Microsoft Edge</option>
+              <option value="firefox">Mozilla Firefox</option>
+              <option value="opera">Opera</option>
+              <option value="safari">Safari</option>
+              <option value="brave">Brave</option>
             </select>
           </div>
 

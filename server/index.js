@@ -71,19 +71,25 @@ app.post('/api/check-path', (req, res) => {
  * Requirement 3: Check website URL and get video count
  */
 app.post('/api/get-info', async (req, res) => {
-  const { url } = req.body;
+  const { url, browser } = req.body;
 
   if (!url) {
     return res.status(400).json({ error: 'URL is required' });
   }
 
   try {
-    // fetching info without downloading
-    const info = await ytDlp(url, {
+    const flags = {
       dumpSingleJson: true,
       flatPlaylist: true, // Don't list all videos in detail, just the playlist/channel meta
       noWarnings: true,
-    });
+    };
+
+    if (browser && browser !== 'none') {
+       flags.cookiesFromBrowser = browser;
+    }
+
+    // fetching info without downloading
+    const info = await ytDlp(url, flags);
 
     const isPlaylist = info._type === 'playlist';
 
@@ -101,7 +107,7 @@ app.post('/api/get-info', async (req, res) => {
 
 // Download endpoint with Server-Sent Events (SSE) for real-time progress updates
 app.post('/api/download', async (req, res) => {
-  const { url, downloadPath, quality, metadata } = req.body;
+  const { url, downloadPath, quality, metadata, browser } = req.body;
 
   // Validate that a URL is provided
   if (!url) {
@@ -128,11 +134,17 @@ app.post('/api/download', async (req, res) => {
   let channelFolder = '';
   try {
     sendEvent('info', { message: 'Fetching channel info to create folder...' });
-    const info = await ytDlp(url, {
+    const infoFlags = {
       dumpSingleJson: true,
       flatPlaylist: true,
       noWarnings: true
-    });
+    };
+
+    if (browser && browser !== 'none') {
+       infoFlags.cookiesFromBrowser = browser;
+    }
+
+    const info = await ytDlp(url, infoFlags);
 
     // Use 'uploader' (channel name) or 'playlist_title' (if playlist) or fallback to 'UnknownChannel'
     // Sanitize the name to be safe for file systems
@@ -167,6 +179,11 @@ app.post('/api/download', async (req, res) => {
     // Prevent duplicate downloads using an archive file
     downloadArchive: path.join(finalOutputDir, 'download_archive.txt'),
   };
+
+  if (browser && browser !== 'none') {
+    flags.cookiesFromBrowser = browser;
+    sendEvent('info', { message: `Using cookies from: ${browser}` });
+  }
 
   // Configure Quality settings based on user selection
   if (quality === 'audio') {

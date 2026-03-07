@@ -71,7 +71,7 @@ app.post('/api/check-path', (req, res) => {
  * Requirement 3: Check website URL and get video count
  */
 app.post('/api/get-info', async (req, res) => {
-  const { url, cookiePath } = req.body;
+  const { url, browser } = req.body;
 
   if (!url) {
     return res.status(400).json({ error: 'URL is required' });
@@ -84,13 +84,8 @@ app.post('/api/get-info', async (req, res) => {
       noWarnings: true,
     };
 
-    if (cookiePath && cookiePath.trim() !== '') {
-       // Only use the file if it exists to prevent yt-dlp crashing immediately
-       if (fs.existsSync(cookiePath.trim())) {
-          flags.cookies = cookiePath.trim();
-       } else {
-          return res.status(400).json({ error: `Cookie file not found at: ${cookiePath}` });
-       }
+    if (browser && browser !== 'none') {
+       flags.cookiesFromBrowser = browser;
     }
 
     // fetching info without downloading
@@ -112,7 +107,7 @@ app.post('/api/get-info', async (req, res) => {
 
 // Download endpoint with Server-Sent Events (SSE) for real-time progress updates
 app.post('/api/download', async (req, res) => {
-  const { url, downloadPath, quality, metadata, cookiePath } = req.body;
+  const { url, downloadPath, quality, metadata, browser } = req.body;
 
   // Validate that a URL is provided
   if (!url) {
@@ -145,10 +140,8 @@ app.post('/api/download', async (req, res) => {
       noWarnings: true
     };
 
-    if (cookiePath && cookiePath.trim() !== '') {
-       if (fs.existsSync(cookiePath.trim())) {
-          infoFlags.cookies = cookiePath.trim();
-       }
+    if (browser && browser !== 'none') {
+       infoFlags.cookiesFromBrowser = browser;
     }
 
     const info = await ytDlp(url, infoFlags);
@@ -187,13 +180,9 @@ app.post('/api/download', async (req, res) => {
     downloadArchive: path.join(finalOutputDir, 'download_archive.txt'),
   };
 
-  if (cookiePath && cookiePath.trim() !== '') {
-    if (fs.existsSync(cookiePath.trim())) {
-       flags.cookies = cookiePath.trim();
-       sendEvent('info', { message: `Using cookies from file: ${cookiePath}` });
-    } else {
-       sendEvent('error', { message: `Cookie file not found: ${cookiePath}. Proceeding without cookies.` });
-    }
+  if (browser && browser !== 'none') {
+    flags.cookiesFromBrowser = browser;
+    sendEvent('info', { message: `Using cookies from browser: ${browser}` });
   }
 
   // Configure Quality settings based on user selection

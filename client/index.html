@@ -82,27 +82,32 @@
             </select>
           </div>
 
-          <!-- Cookies Input -->
+          <!-- Cookies Select -->
           <div>
             <div class="flex items-center mb-1">
-              <label data-i18n="cookieLabel" for="cookie-input" class="block text-sm font-medium text-gray-700">Cookies File (Optional)</label>
+              <label data-i18n="cookieLabel" for="cookie-select" class="block text-sm font-medium text-gray-700">Cookies (Optional)</label>
               <!-- Info Icon with Tooltip -->
               <div class="relative group ml-2 flex items-center justify-center w-4 h-4 rounded-full bg-gray-200 text-gray-500 hover:bg-gray-300 cursor-help text-xs font-bold">
                 ?
                 <div data-i18n="cookieTooltip" class="absolute bottom-full mb-2 hidden group-hover:block w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10 text-center">
-                  Paste the absolute path to your cookies.txt file to bypass age restrictions. Use a browser extension like "Get cookies.txt LOCALLY" to export it.
+                  Select your browser to bypass age restrictions. If extraction fails, try closing the browser first.
                   <!-- Tooltip arrow -->
                   <div class="absolute top-full left-1/2 -ml-1 border-4 border-transparent border-t-gray-800"></div>
                 </div>
               </div>
             </div>
-            <input
-              type="text"
-              id="cookie-input"
-              data-i18n-placeholder="cookiePlaceholder"
-              placeholder="e.g. C:\Users\cookies.txt"
-              class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-            />
+            <select
+              id="cookie-select"
+              class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+            >
+              <option data-i18n="cookieNone" value="none" selected>None (Public Video)</option>
+              <option value="chrome">Google Chrome</option>
+              <option value="edge">Microsoft Edge</option>
+              <option value="firefox">Mozilla Firefox</option>
+              <option value="opera">Opera</option>
+              <option value="safari">Safari</option>
+              <option value="brave">Brave</option>
+            </select>
           </div>
 
           <!-- Metadata Checkboxes -->

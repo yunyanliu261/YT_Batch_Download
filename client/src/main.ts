@@ -6,7 +6,7 @@ const urlInfo = document.getElementById('url-info') as HTMLDivElement;
 const pathInput = document.getElementById('path-input') as HTMLInputElement;
 const rememberPathCheck = document.getElementById('remember-path-check') as HTMLInputElement;
 const qualitySelect = document.getElementById('quality-select') as HTMLSelectElement;
-const cookieInput = document.getElementById('cookie-input') as HTMLInputElement;
+const cookieSelect = document.getElementById('cookie-select') as HTMLSelectElement;
 
 // Metadata check elements
 const metaAll = document.getElementById('meta-all') as HTMLInputElement;
@@ -38,9 +38,9 @@ const i18n = {
     qualityLabel: 'Quality / Format',
     qualityBest: 'Best Quality (Video+Audio)',
     qualityAudio: 'Audio Only (MP3)',
-    cookieLabel: 'Cookies File (Optional)',
-    cookiePlaceholder: 'e.g. C:\\Users\\cookies.txt',
-    cookieTooltip: 'Paste the absolute path to your cookies.txt file to bypass age restrictions. Use a browser extension like "Get cookies.txt LOCALLY" to export it.',
+    cookieLabel: 'Cookies (Optional)',
+    cookieTooltip: 'Select your browser to bypass age restrictions. If extraction fails, try closing the browser first.',
+    cookieNone: 'None (Public Video)',
     metadataLabel: 'Download Metadata',
     metadataTooltip: 'Extra files saved alongside your video (e.g., .vtt for subs, .webp for thumbnails, .json for description and tags).',
     selectAll: 'Select All',
@@ -86,9 +86,9 @@ const i18n = {
     qualityLabel: '畫質 / 格式',
     qualityBest: '最佳畫質 (影片+音訊)',
     qualityAudio: '僅音訊 (MP3)',
-    cookieLabel: 'Cookie 檔案路徑 (可選)',
-    cookiePlaceholder: '例如：C:\\Users\\cookies.txt',
-    cookieTooltip: '若影片有年齡限制或需要登入，請貼上您匯出的 cookies.txt 絕對路徑以繞過限制。(推薦使用 "Get cookies.txt LOCALLY" 擴充功能匯出)',
+    cookieLabel: '載入瀏覽器 Cookie (可選)',
+    cookieTooltip: '若遇到「Could not copy cookie database」錯誤，請先關閉該瀏覽器再試一次。',
+    cookieNone: '無 (公開影片)',
     metadataLabel: '下載中介資料 (Metadata)',
     metadataTooltip: '與影片一併儲存的額外檔案 (例如：.vtt 字幕、.webp 縮圖、.json 影片資訊與標籤)。',
     selectAll: '全選 (Select All)',
@@ -208,7 +208,7 @@ if (savedPath) {
 
 const savedCookie = localStorage.getItem(SAVED_COOKIE_KEY);
 if (savedCookie) {
-  cookieInput.value = savedCookie;
+  cookieSelect.value = savedCookie;
 }
 
 const checkDependencies = async () => {
@@ -282,7 +282,7 @@ const performUrlCheck = async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         url,
-        cookiePath: cookieInput.value.trim()
+        browser: cookieSelect.value
       })
     });
     const data = await res.json();
@@ -315,7 +315,7 @@ downloadBtn.addEventListener('click', async () => {
   const url = urlInput.value.trim();
   const path = pathInput.value.trim();
   const quality = qualitySelect.value;
-  const cookiePath = cookieInput.value.trim();
+  const browser = cookieSelect.value;
 
   // Save or Clear Preferences
   if (rememberPathCheck.checked && path) {
@@ -324,8 +324,8 @@ downloadBtn.addEventListener('click', async () => {
     localStorage.removeItem(SAVED_PATH_KEY);
   }
 
-  if (cookiePath) {
-    localStorage.setItem(SAVED_COOKIE_KEY, cookiePath);
+  if (browser !== 'none') {
+    localStorage.setItem(SAVED_COOKIE_KEY, browser);
   } else {
     localStorage.removeItem(SAVED_COOKIE_KEY);
   }
@@ -379,7 +379,7 @@ downloadBtn.addEventListener('click', async () => {
         downloadPath: path,
         quality,
         metadata,
-        cookiePath
+        browser
       }),
     });
 

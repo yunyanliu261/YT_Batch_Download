@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2024-05-18]
+- Updated the repository link in the UI footer to point to `https://github.com/yunyanliu261/YT_Batch_Download`.
+- Updated `README.md` to reflect the new repository URL.
+- Added comprehensive troubleshooting documentation in `README.md` to explain common `yt-dlp` errors:
+  - Explained `Requested format is not available` as a DRM restriction mechanism by YouTube.
+  - Explained `Could not copy Chrome cookie database` and provided instructions on how to resolve browser cookie locking issues by fully closing Chrome or using an alternative browser.
+
 ## [1.1.0] - 2026-03-03
 
 ### Added

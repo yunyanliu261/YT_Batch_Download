@@ -2,6 +2,8 @@
 
 A lightweight, local web-based tool to download YouTube videos or entire channels with a simple UI. Built with Node.js (Express), Vite, TypeScript, and Tailwind CSS.
 
+[Repository Link: https://github.com/yunyanliu261/YT_Batch_Download](https://github.com/yunyanliu261/YT_Batch_Download)
+
 ## Features
 
 - **Dual-Language UI**: Seamlessly switch between English and Traditional Chinese (繁體中文). Your preference is saved automatically.
@@ -81,8 +83,10 @@ For Windows users, starting the app is completely automated.
 ## Troubleshooting
 
 -   **"System Check Failed"**: Ensure Python 3 is installed and added to your system's Environment Variables (PATH).
--   **403 Forbidden Error**: YouTube actively blocks cloud server IP addresses (like AWS, Azure, Replit). This tool is designed to run locally on your home computer, where IP blocking is rare.
+-   **403 Forbidden / Sign in to confirm your age**: Some videos are age-restricted. You can bypass this by using the "Browser Cookies" dropdown in the UI to authenticate using your local browser session.
 -   **Files missing audio/video**: Ensure FFmpeg is available on your system so the tool can merge the best video and best audio streams together.
+-   **"Requested format is not available"**: If you see this error (often on official music videos or premium content), it means the video is protected by DRM (Digital Rights Management). `yt-dlp` cannot download DRM-protected content.
+-   **"Could not copy Chrome cookie database"**: If you selected Chrome in the Browser Cookies dropdown and see this error, it means Chrome is currently running and has locked its cookie file. You must completely close Chrome (including background processes via the system tray or Task Manager) before attempting the download again, or choose a different browser like Firefox or Edge.
 
 ## Tech Stack
 

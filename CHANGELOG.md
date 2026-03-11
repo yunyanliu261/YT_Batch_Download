@@ -3,6 +3,7 @@
 All notable changes to this project will be documented in this file.
 
 ## [2024-05-18]
+- Created `PROJECT_STRUCTURE.md` to provide detailed documentation on the project architecture and the purpose of each file and directory.
 - Updated the repository link in the UI footer to point to `https://github.com/yunyanliu261/YT_Batch_Download`.
 - Updated `README.md` to reflect the new repository URL.
 - Added comprehensive troubleshooting documentation in `README.md` to explain common `yt-dlp` errors:

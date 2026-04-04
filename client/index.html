@@ -98,7 +98,7 @@
             </div>
             <select
               id="cookie-select"
-              class="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+              class="w-full p-3 mb-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
             >
               <option data-i18n="cookieNone" value="none" selected>None (Public Video)</option>
               <option value="chrome">Google Chrome</option>
@@ -108,6 +108,21 @@
               <option value="safari">Safari</option>
               <option value="brave">Brave</option>
             </select>
+
+            <div class="flex flex-col mt-2">
+              <label for="cookie-file" class="block text-xs font-medium text-gray-500 mb-1">Or upload cookies.txt (Netscape format):</label>
+              <input
+                type="file"
+                id="cookie-file"
+                accept=".txt"
+                class="block w-full text-sm text-gray-500
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-md file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-blue-50 file:text-blue-700
+                  hover:file:bg-blue-100
+                "/>
+            </div>
           </div>
 
           <!-- Metadata Checkboxes -->

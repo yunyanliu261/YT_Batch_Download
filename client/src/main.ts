@@ -7,6 +7,7 @@ const pathInput = document.getElementById('path-input') as HTMLInputElement;
 const rememberPathCheck = document.getElementById('remember-path-check') as HTMLInputElement;
 const qualitySelect = document.getElementById('quality-select') as HTMLSelectElement;
 const cookieSelect = document.getElementById('cookie-select') as HTMLSelectElement;
+const cookieFileInput = document.getElementById('cookie-file') as HTMLInputElement;
 
 // Metadata check elements
 const metaAll = document.getElementById('meta-all') as HTMLInputElement;
@@ -271,6 +272,12 @@ const performUrlCheck = async () => {
   const url = urlInput.value.trim();
   if (!url) return alert(t('alertNoUrl'));
 
+  let cookieContent: string | undefined = undefined;
+  if (cookieFileInput.files && cookieFileInput.files.length > 0) {
+    const file = cookieFileInput.files[0];
+    cookieContent = await file.text();
+  }
+
   checkUrlBtn.disabled = true;
   checkUrlBtn.textContent = t('logChecking');
   urlInfo.classList.add('hidden');
@@ -282,7 +289,8 @@ const performUrlCheck = async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         url,
-        browser: cookieSelect.value
+        browser: cookieSelect.value,
+        cookieContent
       })
     });
     const data = await res.json();
@@ -316,6 +324,12 @@ downloadBtn.addEventListener('click', async () => {
   const path = pathInput.value.trim();
   const quality = qualitySelect.value;
   const browser = cookieSelect.value;
+
+  let cookieContent: string | undefined = undefined;
+  if (cookieFileInput.files && cookieFileInput.files.length > 0) {
+    const file = cookieFileInput.files[0];
+    cookieContent = await file.text();
+  }
 
   // Save or Clear Preferences
   if (rememberPathCheck.checked && path) {
@@ -379,7 +393,8 @@ downloadBtn.addEventListener('click', async () => {
         downloadPath: path,
         quality,
         metadata,
-        browser
+        browser,
+        cookieContent
       }),
     });
 

@@ -6,6 +6,7 @@ const ffmpegStatic = require('ffmpeg-static');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const os = require('os');
 
 const app = express();
 const PORT = 3000;
@@ -87,7 +88,7 @@ app.post('/api/get-info', async (req, res) => {
     };
 
     if (cookieContent) {
-      cookieFilePath = path.join(__dirname, `temp_cookie_${crypto.randomUUID()}.txt`);
+      cookieFilePath = path.join(os.tmpdir(), `temp_cookie_${crypto.randomUUID()}.txt`);
       fs.writeFileSync(cookieFilePath, cookieContent);
       flags.cookies = cookieFilePath;
     } else if (browser && browser !== 'none') {
@@ -143,9 +144,10 @@ app.post('/api/download', async (req, res) => {
   // We'll fetch the channel info first using a quick probe
   let channelFolder = '';
   let cookieFilePath = null;
+  let allEntries = [];
 
   if (cookieContent) {
-    cookieFilePath = path.join(__dirname, `temp_cookie_${crypto.randomUUID()}.txt`);
+    cookieFilePath = path.join(os.tmpdir(), `temp_cookie_${crypto.randomUUID()}.txt`);
     try {
       fs.writeFileSync(cookieFilePath, cookieContent);
     } catch (err) {
@@ -153,6 +155,13 @@ app.post('/api/download', async (req, res) => {
       return res.end();
     }
   }
+
+  // Cleanup on early client disconnect
+  req.on('close', () => {
+    if (cookieFilePath && fs.existsSync(cookieFilePath)) {
+      try { fs.unlinkSync(cookieFilePath); } catch(e) {}
+    }
+  });
 
   try {
     sendEvent('info', { message: 'Fetching channel info to create folder...' });
@@ -171,6 +180,12 @@ app.post('/api/download', async (req, res) => {
 
     const info = await ytDlp(url, infoFlags);
 
+    if (info.entries && Array.isArray(info.entries)) {
+      allEntries = info.entries.map(e => ({ id: e.id, title: e.title }));
+    } else if (info.id) {
+      allEntries = [{ id: info.id, title: info.title }];
+    }
+
     // Use 'uploader' (channel name) or 'playlist_title' (if playlist) or fallback to 'UnknownChannel'
     // Sanitize the name to be safe for file systems
     const rawName = info.uploader || info.playlist_title || info.channel || 'UnknownChannel';
@@ -184,6 +199,41 @@ app.post('/api/download', async (req, res) => {
   }
 
   const finalOutputDir = path.join(baseOutputDir, channelFolder);
+
+  // Requirement: Check downloaded archive and emit a download-plan event
+  try {
+    let downloadedIds = new Set();
+    const archivePath = path.join(finalOutputDir, 'download_archive.txt');
+    if (fs.existsSync(archivePath)) {
+      const content = fs.readFileSync(archivePath, 'utf8');
+      content.split('\n').forEach(line => {
+        const parts = line.split(' ');
+        if (parts.length >= 2) {
+           downloadedIds.add(parts[1].trim());
+        }
+      });
+    }
+
+    let downloadedCount = 0;
+    let pendingCount = 0;
+    if (allEntries.length > 0) {
+      allEntries.forEach(e => {
+        if (e.id && downloadedIds.has(e.id)) {
+          downloadedCount++;
+        } else {
+          pendingCount++;
+        }
+      });
+      sendEvent('download-plan', {
+        total: allEntries.length,
+        downloaded: downloadedCount,
+        pending: pendingCount
+      });
+    }
+  } catch (err) {
+    // Ignore errors if archive parsing fails
+    console.error('Error analyzing archive:', err);
+  }
 
   // Create the final directory (Base + Channel Name) if it doesn't exist
   if (!fs.existsSync(finalOutputDir)) {

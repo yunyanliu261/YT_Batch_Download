@@ -273,11 +273,11 @@ app.post('/api/download', async (req, res) => {
   } else {
     // Video quality selection
     if (quality === '1080p') {
-      flags.format = 'bestvideo[height<=1080]+bestaudio/best[height<=1080]/best';
+      flags.format = 'bestvideo[height<=1080]+bestaudio/best[height<=1080]/bestvideo+bestaudio/best';
     } else if (quality === '720p') {
-      flags.format = 'bestvideo[height<=720]+bestaudio/best[height<=720]/best';
+      flags.format = 'bestvideo[height<=720]+bestaudio/best[height<=720]/bestvideo+bestaudio/best';
     } else if (quality === '480p') {
-      flags.format = 'bestvideo[height<=480]+bestaudio/best[height<=480]/best';
+      flags.format = 'bestvideo[height<=480]+bestaudio/best[height<=480]/bestvideo+bestaudio/best';
     } else {
       // Default to best available quality
       flags.format = 'bestvideo+bestaudio/best';

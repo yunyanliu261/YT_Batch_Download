@@ -111,7 +111,7 @@ app.post('/api/get-info', async (req, res) => {
     res.status(500).json({ error: `Failed to fetch info: ${err.message}` });
   } finally {
     if (cookieFilePath && fs.existsSync(cookieFilePath)) {
-      fs.unlinkSync(cookieFilePath);
+      try { fs.unlinkSync(cookieFilePath); } catch(e) {}
     }
   }
 });
@@ -242,7 +242,7 @@ app.post('/api/download', async (req, res) => {
     } catch (err) {
       sendEvent('error', { message: `Failed to create directory: ${err.message}` });
       if (cookieFilePath && fs.existsSync(cookieFilePath)) {
-        fs.unlinkSync(cookieFilePath);
+        try { fs.unlinkSync(cookieFilePath); } catch(e) {}
       }
       return res.end();
     }
@@ -289,7 +289,11 @@ app.post('/api/download', async (req, res) => {
   // Metadata settings based on object
   // Expecting: { subs: boolean, thumbnail: boolean, json: boolean }
   if (metadata) {
-    if (metadata.thumbnail) flags.writeThumbnail = true;
+    if (metadata.thumbnail) {
+      flags.writeThumbnail = true;
+      flags.convertThumbnails = 'jpg';
+      flags.embedThumbnail = true;
+    }
     if (metadata.subs) flags.writeSubs = true;
     if (metadata.json) flags.writeInfoJson = true;
 
@@ -339,7 +343,7 @@ app.post('/api/download', async (req, res) => {
         sendEvent('error', { message: `Process exited with code ${code}` });
       }
       if (cookieFilePath && fs.existsSync(cookieFilePath)) {
-        fs.unlinkSync(cookieFilePath);
+        try { fs.unlinkSync(cookieFilePath); } catch(e) {}
       }
       res.end();
     });
@@ -347,7 +351,7 @@ app.post('/api/download', async (req, res) => {
     subprocess.on('error', (err) => {
        sendEvent('error', { message: `Spawn error: ${err.message}` });
        if (cookieFilePath && fs.existsSync(cookieFilePath)) {
-         fs.unlinkSync(cookieFilePath);
+         try { fs.unlinkSync(cookieFilePath); } catch(e) {}
        }
        res.end();
     });
@@ -355,7 +359,7 @@ app.post('/api/download', async (req, res) => {
   } catch (error) {
     sendEvent('error', { message: `Execution error: ${error.message}` });
     if (cookieFilePath && fs.existsSync(cookieFilePath)) {
-      fs.unlinkSync(cookieFilePath);
+      try { fs.unlinkSync(cookieFilePath); } catch(e) {}
     }
     res.end();
   }

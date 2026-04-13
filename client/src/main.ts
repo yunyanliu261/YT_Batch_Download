@@ -450,6 +450,8 @@ downloadBtn.addEventListener('click', async () => {
             appendLog(data.message, 'error');
           } else if (eventType === 'complete') {
             appendLog(data.message, 'success');
+          } else if (eventType === 'download-plan') {
+            appendLog(`[Plan] Total expected: ${data.total} | Already downloaded: ${data.downloaded} | Pending: ${data.pending}`, 'success');
           }
         }
       }

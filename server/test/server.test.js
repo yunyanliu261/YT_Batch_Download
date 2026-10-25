@@ -1,13 +1,14 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const http = require('http');
-const { app, parseVideoUrl, isValidDownloadPath } = require('../index');
+const { createApp } = require('../src/app');
+const { parseVideoUrl, isValidDownloadPath } = require('../src/validation');
 
 let server;
 let port;
 
 test.before(async () => {
-  server = app.listen(0, '127.0.0.1');
+  server = createApp().listen(0, '127.0.0.1');
   await new Promise((resolve) => server.once('listening', resolve));
   port = server.address().port;
 });

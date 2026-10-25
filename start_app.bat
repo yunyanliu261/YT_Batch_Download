@@ -9,10 +9,12 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
-:: Install dependencies if node_modules is missing in server
-if not exist "server\node_modules" (
+:: Install server dependencies if missing (also after updating from a version that used yt-dlp-exec)
+:: The Windows yt-dlp.exe does not need Python, so skip youtube-dl-exec's Python check
+if not exist "server\node_modules\youtube-dl-exec" (
     echo Installing server dependencies...
     cd server
+    set YOUTUBE_DL_SKIP_PYTHON_CHECK=1
     call npm install
     cd ..
 )

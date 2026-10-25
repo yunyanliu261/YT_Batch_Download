@@ -170,6 +170,20 @@
           Start Download
         </button>
 
+        <!-- Progress Panel (shown once a download starts) -->
+        <div id="progress-panel" class="hidden space-y-2">
+          <div class="flex justify-between text-xs text-gray-600">
+            <span id="progress-item-text"></span>
+            <span id="progress-detail" class="font-mono"></span>
+          </div>
+          <div class="w-full bg-gray-200 rounded h-2.5" title="Overall">
+            <div id="progress-overall-bar" class="bg-blue-600 h-2.5 rounded transition-all" style="width: 0%"></div>
+          </div>
+          <div class="w-full bg-gray-200 rounded h-1.5" title="Current file">
+            <div id="progress-file-bar" class="bg-green-500 h-1.5 rounded transition-all" style="width: 0%"></div>
+          </div>
+        </div>
+
         <!-- Cancel Button (shown while downloading) -->
         <button
           id="cancel-btn"

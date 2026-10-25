@@ -15,13 +15,21 @@ All notable changes to this project will be documented in this file.
 - Downloads with "Thumbnail" checked always ended with `ffprobe not found` and did not record `download_archive.txt`. Thumbnails are now saved as `.jpg` files next to the video instead of being embedded.
 - Closing the page or cancelling now stops yt-dlp instead of letting it keep downloading in the background.
 - Uploaded cookie files are now cleaned up when the client disconnects.
+- `npm install` no longer fails on systems without a `python` command (Ubuntu ships only `python3`).
 
 ### Added
 - Cancel button while a download is running.
+- Progress bars for the current file and for the whole playlist/channel (yt-dlp output is now parsed on the server).
+- Playlists are saved to `<channel>/<playlist title>/`. The download archive stays in the channel folder, so videos already downloaded with earlier versions are still skipped.
+- `start_app.sh` for macOS / Linux.
+- Random 5–30 second wait before each video of a playlist/channel to avoid YouTube rate limits (PR #2). Single videos start right away.
 - yt-dlp is updated automatically when the server starts; the system check shows the yt-dlp version and checks the yt-dlp binary instead of only Python.
 - Backend tests (`cd server && npm test`).
 
 ### Changed
+- Replaced the unmaintained `yt-dlp-exec` (last release 2022) with `youtube-dl-exec`. It passes the URL after `--`, so it can never be read as a yt-dlp option. On Windows, `start_app.bat` skips its Python check because `yt-dlp.exe` does not need Python. Existing installs pick up the new package automatically through `start_app.bat` / `start_app.sh`.
+- Backend split from a single `index.js` into modules under `server/src/` (see `PROJECT_STRUCTURE.md`).
+- Removed unused Vite template files (`counter.ts`, `typescript.svg`).
 - File names now include the video ID (`Title [id].mp4`) and titles are limited to 150 bytes to avoid name collisions and Windows path length errors. Previously downloaded videos are still skipped via `download_archive.txt`.
 - The progress log keeps the latest 2000 lines.
 

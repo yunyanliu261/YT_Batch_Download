@@ -19,6 +19,13 @@ const subCheckboxes = [metaSubs, metaThumb, metaJson];
 
 const downloadBtn = document.getElementById('download-btn') as HTMLButtonElement;
 const cancelBtn = document.getElementById('cancel-btn') as HTMLButtonElement;
+
+// Progress panel elements
+const progressPanel = document.getElementById('progress-panel') as HTMLDivElement;
+const progressItemText = document.getElementById('progress-item-text') as HTMLSpanElement;
+const progressDetail = document.getElementById('progress-detail') as HTMLSpanElement;
+const progressOverallBar = document.getElementById('progress-overall-bar') as HTMLDivElement;
+const progressFileBar = document.getElementById('progress-file-bar') as HTMLDivElement;
 const logContainer = document.getElementById('log-container') as HTMLDivElement;
 const systemStatus = document.getElementById('system-status') as HTMLDivElement;
 
@@ -68,8 +75,11 @@ const i18n = {
     alertPathError: 'Download path error: ',
     logSysMissing: 'Missing dependencies! Python and the yt-dlp binary are required: install Python, then run "npm install" in the server folder.',
     logChecking: 'Checking...',
-    logTypePlaylist: 'Playlist/Channel',
+    logTypePlaylist: 'Playlist',
+    logTypeChannel: 'Channel',
     logTypeVideo: 'Single Video',
+    progressItem: 'Video {index} of {total}',
+    progressSingle: 'Current file',
     logCountFound: 'video(s) found',
     logUploader: 'Uploader: ',
     logType: 'Type: ',
@@ -118,8 +128,11 @@ const i18n = {
     alertPathError: '下載路徑錯誤：',
     logSysMissing: '缺少必要套件！需要 Python 與 yt-dlp：請先安裝 Python，再於 server 資料夾執行 "npm install"。',
     logChecking: '檢查中...',
-    logTypePlaylist: '播放清單 / 頻道',
+    logTypePlaylist: '播放清單',
+    logTypeChannel: '頻道',
     logTypeVideo: '單一影片',
+    progressItem: '第 {index} / {total} 部影片',
+    progressSingle: '目前檔案',
     logCountFound: '部影片',
     logUploader: '上傳者：',
     logType: '類型：',
@@ -249,6 +262,26 @@ const checkDependencies = async () => {
 };
 
 
+// --- Progress Panel ---
+const progressState = { index: 1, total: 1, percent: 0 };
+
+const renderProgress = (detail = '') => {
+  const { index, total, percent } = progressState;
+  const overall = total > 1 ? ((index - 1) + percent / 100) / total * 100 : percent;
+  progressOverallBar.style.width = `${Math.min(100, overall).toFixed(1)}%`;
+  progressFileBar.style.width = `${Math.min(100, percent).toFixed(1)}%`;
+  progressItemText.textContent = total > 1
+    ? t('progressItem').replace('{index}', String(index)).replace('{total}', String(total))
+    : t('progressSingle');
+  progressDetail.textContent = detail;
+};
+
+const resetProgress = () => {
+  Object.assign(progressState, { index: 1, total: 1, percent: 0 });
+  renderProgress();
+  progressPanel.classList.remove('hidden');
+};
+
 // --- Handlers ---
 // --- Metadata UI Logic ---
 const updateMetaAllState = () => {
@@ -311,7 +344,9 @@ const performUrlCheck = async () => {
 
     if (res.ok) {
       urlInfo.classList.remove('hidden');
-      const typeText = data.is_playlist ? t('logTypePlaylist') : t('logTypeVideo');
+      const typeText = data.kind === 'channel'
+        ? t('logTypeChannel')
+        : data.kind === 'playlist' ? t('logTypePlaylist') : t('logTypeVideo');
       // Build with textContent: titles and uploader names come from YouTube and may contain HTML
       const rows: [string, string?][] = [
         [`${data.title}`, 'font-bold'],
@@ -401,6 +436,7 @@ downloadBtn.addEventListener('click', async () => {
   downloadBtn.disabled = true;
   downloadBtn.textContent = t('uiDownloading');
   clearLogs();
+  resetProgress();
   appendLog(`${t('logStartDownload')} ${url}`, 'info');
 
   // Aborting the request closes the connection, which makes the server stop yt-dlp
@@ -468,16 +504,22 @@ downloadBtn.addEventListener('click', async () => {
             continue;
           }
 
-          if (eventType === 'progress') {
-            // Update log with raw output
-            if (data.raw) {
-                appendLog(data.raw, 'progress');
-            }
+          if (eventType === 'log') {
+            // Other yt-dlp output
+            appendLog(data.raw, 'progress');
+          } else if (eventType === 'progress') {
+            progressState.percent = data.percent;
+            renderProgress([`${data.percent.toFixed(1)}%`, data.size, data.speed, data.eta && `ETA ${data.eta}`].filter(Boolean).join(' · '));
+          } else if (eventType === 'item') {
+            Object.assign(progressState, { index: data.index, total: data.total, percent: 0 });
+            renderProgress();
           } else if (eventType === 'info') {
             appendLog(data.message, 'info');
           } else if (eventType === 'error') {
             appendLog(data.message, 'error');
           } else if (eventType === 'complete') {
+            Object.assign(progressState, { index: progressState.total, percent: 100 });
+            renderProgress();
             appendLog(data.message, 'success');
           } else if (eventType === 'download-plan') {
             appendLog(`[Plan] Total expected: ${data.total} | Already downloaded: ${data.downloaded} | Pending: ${data.pending}`, 'success');

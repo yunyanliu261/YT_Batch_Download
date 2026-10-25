@@ -7,24 +7,29 @@ A lightweight, local web-based tool to download YouTube videos or entire channel
 ## Features
 
 - **Dual-Language UI**: Seamlessly switch between English and Traditional Chinese (繁體中文). Your preference is saved automatically.
-- **Download Channels or Single Videos**: Paste a YouTube URL and automatically organize downloads into subfolders named after the channel/uploader.
+- **Download Channels, Playlists or Single Videos**: Paste a YouTube URL and downloads are organized automatically:
+  - Video or channel → `<download path>/<channel>/`
+  - Playlist → `<download path>/<channel>/<playlist title>/`
 - **Pre-Download Checks**: Built-in verification to check URL validity, display video counts, and ensure the target download path exists and is writable.
-- **Smart Duplicate Prevention**: Automatically tracks downloaded videos using an archive file (`download_archive.txt`). If you restart a channel download, it instantly skips videos you already have.
+- **Smart Duplicate Prevention**: Automatically tracks downloaded videos using an archive file (`download_archive.txt`). If you restart a channel download, it instantly skips videos you already have. The archive is kept per channel, so a video found again in another playlist of the same channel is not downloaded twice.
 - **Select Quality**: Choose from Best (default), 1080p, 720p, 480p, or Audio Only (MP3).
 - **Granular Metadata Control**: Optionally download extra files alongside your video. You can select all or pick individually:
   - Subtitles (`.vtt`)
-  - Thumbnails (`.jpg`/`.webp`)
+  - Thumbnails (saved as `.jpg` next to the video)
   - Info JSON (video description, tags, etc.)
 - **Custom Download Path**: Specify exactly where files should be saved on your machine.
-- **Real-time Progress**: View download logs, status, and progress directly in the browser UI.
+- **Real-time Progress**: Progress bars for the current file and the whole playlist/channel, plus the download log. Downloads can be cancelled at any time.
+- **Rate Limit Protection**: When downloading a playlist or channel, the app waits a random 5–30 seconds before each video to avoid being blocked by YouTube. Single videos start immediately.
+- **Always Up to Date**: The bundled `yt-dlp` is updated automatically every time the server starts.
 
 ## Prerequisites
 
 To run this application, you must have the following installed on your system:
 
-1.  [Node.js](https://nodejs.org/) (v18 or higher recommended)
-2.  [Python 3](https://www.python.org/downloads/) (Required by the underlying `yt-dlp` engine. Ensure it is added to your system PATH during installation. The `npm install` step checks for a `python` command; on Linux install `python-is-python3` if only `python3` exists).
-3.  [FFmpeg](https://ffmpeg.org/) (The app attempts to use a bundled `ffmpeg-static` version automatically, but having it installed globally is recommended as a fallback for merging video/audio streams).
+1.  [Node.js](https://nodejs.org/) v18 or higher.
+2.  **macOS / Linux only:** [Python 3.9+](https://www.python.org/downloads/) (`python3` must be on your PATH; the `yt-dlp` build for these systems runs on Python). Windows does not need Python.
+
+`yt-dlp` and FFmpeg are downloaded automatically by `npm install` (via `youtube-dl-exec` and `ffmpeg-static`).
 
 ## Installation & Running (Windows)
 
@@ -40,6 +45,16 @@ For Windows users, starting the app is completely automated.
 4.  To stop the application, simply press any key in the command prompt window that opened, and it will safely terminate the background processes.
 
 ## Installation & Running (Mac/Linux)
+
+Run the start script from the project folder:
+
+```bash
+./start_app.sh
+```
+
+It installs missing dependencies, starts the backend in the background and the frontend in the foreground, and opens your browser. Press `Ctrl+C` to stop both.
+
+To start things manually instead:
 
 1.  **Install Backend Dependencies:**
     ```bash
@@ -82,7 +97,7 @@ For Windows users, starting the app is completely automated.
 
 ## Troubleshooting
 
--   **"System Check Failed"**: Ensure Python 3 is installed and added to your system's Environment Variables (PATH), then run `npm install` again in the `server` folder so the yt-dlp binary is downloaded.
+-   **"System Check Failed"**: Run `npm install` again in the `server` folder so the yt-dlp binary is downloaded (on Windows, run `set YOUTUBE_DL_SKIP_PYTHON_CHECK=1` first if Python is not installed). On macOS/Linux, also make sure `python3` (3.9+) is installed.
 -   **403 Forbidden / Sign in to confirm your age**: Some videos are age-restricted. You can bypass this by using the "Browser Cookies" dropdown in the UI to authenticate using your local browser session.
 -   **Files missing audio/video**: Ensure FFmpeg is available on your system so the tool can merge the best video and best audio streams together.
 -   **"Requested format is not available"**: If you see this error (often on official music videos or premium content), it means the video is protected by DRM (Digital Rights Management). `yt-dlp` cannot download DRM-protected content.
@@ -90,7 +105,7 @@ For Windows users, starting the app is completely automated.
 
 ## Tech Stack
 
--   **Backend**: Node.js, Express, `yt-dlp-exec` (wrapper for the powerful `yt-dlp` binary).
+-   **Backend**: Node.js, Express, `youtube-dl-exec` (wrapper for the powerful `yt-dlp` binary), `ffmpeg-static`.
 -   **Frontend**: Vite, Vanilla TypeScript, Tailwind CSS.
 
 ## Security Notes

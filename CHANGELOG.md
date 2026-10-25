@@ -2,7 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2024-05-18]
+## [1.2.0] - 2026-10-26
+
+### Security
+- Backend now listens on `127.0.0.1` only (was all network interfaces).
+- Requests from other websites are rejected (Origin check + restricted CORS), and non-local `Host` headers are rejected to block DNS rebinding. Previously any web page could start downloads or create folders.
+- URLs must be `http(s)://`. Values starting with `--` were passed to yt-dlp as command-line options.
+- Download path must be absolute.
+- Video titles in the URL check panel are rendered as text instead of HTML.
+
+### Fixed
+- Downloads with "Thumbnail" checked always ended with `ffprobe not found` and did not record `download_archive.txt`. Thumbnails are now saved as `.jpg` files next to the video instead of being embedded.
+- Closing the page or cancelling now stops yt-dlp instead of letting it keep downloading in the background.
+- Uploaded cookie files are now cleaned up when the client disconnects.
+
+### Added
+- Cancel button while a download is running.
+- yt-dlp is updated automatically when the server starts; the system check shows the yt-dlp version and checks the yt-dlp binary instead of only Python.
+- Backend tests (`cd server && npm test`).
+
+### Changed
+- File names now include the video ID (`Title [id].mp4`) and titles are limited to 150 bytes to avoid name collisions and Windows path length errors. Previously downloaded videos are still skipped via `download_archive.txt`.
+- The progress log keeps the latest 2000 lines.
+
+## [2026-03-11]
 - Created `PROJECT_STRUCTURE.md` to provide detailed documentation on the project architecture and the purpose of each file and directory.
 - Updated the repository link in the UI footer to point to `https://github.com/yunyanliu261/YT_Batch_Download`.
 - Updated `README.md` to reflect the new repository URL.

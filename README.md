@@ -23,7 +23,7 @@ A lightweight, local web-based tool to download YouTube videos or entire channel
 To run this application, you must have the following installed on your system:
 
 1.  [Node.js](https://nodejs.org/) (v18 or higher recommended)
-2.  [Python 3](https://www.python.org/downloads/) (Required by the underlying `yt-dlp` engine. Ensure it is added to your system PATH during installation).
+2.  [Python 3](https://www.python.org/downloads/) (Required by the underlying `yt-dlp` engine. Ensure it is added to your system PATH during installation. The `npm install` step checks for a `python` command; on Linux install `python-is-python3` if only `python3` exists).
 3.  [FFmpeg](https://ffmpeg.org/) (The app attempts to use a bundled `ffmpeg-static` version automatically, but having it installed globally is recommended as a fallback for merging video/audio streams).
 
 ## Installation & Running (Windows)
@@ -72,7 +72,7 @@ For Windows users, starting the app is completely automated.
 ## Usage Guide
 
 1.  **Language Selection**: Use the toggle at the top right to select your preferred language.
-2.  **System Check**: Upon opening the page, look for the "System Check" indicator at the bottom. It should say "Ready" and confirm Python and FFmpeg are detected.
+2.  **System Check**: Upon opening the page, look for the "System Check" indicator at the bottom. It should say "Ready" and show the detected yt-dlp version. The server checks for yt-dlp updates every time it starts.
 3.  **YouTube URL**: Paste the link to a video or a channel main page.
 3.  **Check URL**: Click this button *before* downloading. It will query YouTube and display the video title, uploader name, and how many videos will be downloaded (useful for channels).
 4.  **Download Path**: (Optional) Enter an absolute path on your machine (e.g., `C:\Users\You\Downloads` or `/home/user/downloads`). If left empty, files will be saved in `server/downloads`.
@@ -82,7 +82,7 @@ For Windows users, starting the app is completely automated.
 
 ## Troubleshooting
 
--   **"System Check Failed"**: Ensure Python 3 is installed and added to your system's Environment Variables (PATH).
+-   **"System Check Failed"**: Ensure Python 3 is installed and added to your system's Environment Variables (PATH), then run `npm install` again in the `server` folder so the yt-dlp binary is downloaded.
 -   **403 Forbidden / Sign in to confirm your age**: Some videos are age-restricted. You can bypass this by using the "Browser Cookies" dropdown in the UI to authenticate using your local browser session.
 -   **Files missing audio/video**: Ensure FFmpeg is available on your system so the tool can merge the best video and best audio streams together.
 -   **"Requested format is not available"**: If you see this error (often on official music videos or premium content), it means the video is protected by DRM (Digital Rights Management). `yt-dlp` cannot download DRM-protected content.
@@ -92,3 +92,13 @@ For Windows users, starting the app is completely automated.
 
 -   **Backend**: Node.js, Express, `yt-dlp-exec` (wrapper for the powerful `yt-dlp` binary).
 -   **Frontend**: Vite, Vanilla TypeScript, Tailwind CSS.
+
+## Security Notes
+
+-   The backend only listens on `127.0.0.1:3000` and only accepts requests from the local frontend (`localhost` / `127.0.0.1`). Other websites and other machines on your network cannot use it.
+-   Only `http://` and `https://` URLs are accepted, and the download path must be an absolute path.
+
+## Development
+
+-   Run the backend tests: `cd server && npm test`
+-   Set `SKIP_YTDLP_UPDATE=1` to skip the yt-dlp update check on server start.

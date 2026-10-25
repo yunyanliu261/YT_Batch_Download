@@ -18,12 +18,19 @@ const metaJson = document.getElementById('meta-json') as HTMLInputElement;
 const subCheckboxes = [metaSubs, metaThumb, metaJson];
 
 const downloadBtn = document.getElementById('download-btn') as HTMLButtonElement;
+const cancelBtn = document.getElementById('cancel-btn') as HTMLButtonElement;
 const logContainer = document.getElementById('log-container') as HTMLDivElement;
 const systemStatus = document.getElementById('system-status') as HTMLDivElement;
 
 // Language Elements
 const langZhBtn = document.getElementById('lang-zh') as HTMLButtonElement;
 const langEnBtn = document.getElementById('lang-en') as HTMLButtonElement;
+
+// Backend API (the server only listens on localhost)
+const API_BASE = 'http://localhost:3000';
+
+// Keep the log from growing without bound during long channel downloads
+const MAX_LOG_LINES = 2000;
 
 // --- i18n Dictionary ---
 const i18n = {
@@ -51,7 +58,7 @@ const i18n = {
     metaJson: 'Info JSON (.info.json)',
     startDownload: 'Start Download',
     checkingSystem: 'Checking system dependencies...',
-    sysReady: '✅ System Check: Ready (Python & FFmpeg detected)',
+    sysReady: '✅ System Check: Ready (yt-dlp & FFmpeg detected)',
     sysFailed: '❌ System Check Failed: ',
     sysUnreachable: '❌ Backend not reachable',
     progressLogLabel: 'Progress Log',
@@ -59,7 +66,7 @@ const i18n = {
     viewSource: 'View Source Code',
     alertNoUrl: 'Please enter a URL',
     alertPathError: 'Download path error: ',
-    logSysMissing: 'Missing dependencies! Please ensure Python and FFmpeg are installed.',
+    logSysMissing: 'Missing dependencies! Python and the yt-dlp binary are required: install Python, then run "npm install" in the server folder.',
     logChecking: 'Checking...',
     logTypePlaylist: 'Playlist/Channel',
     logTypeVideo: 'Single Video',
@@ -73,7 +80,9 @@ const i18n = {
     logPathFailed: 'Failed to validate path with server.',
     logStartDownload: 'Starting download for: ',
     logProcessFinished: 'Process finished.',
-    uiDownloading: 'Downloading...'
+    uiDownloading: 'Downloading...',
+    cancelDownload: 'Cancel',
+    logCancelled: 'Download cancelled.'
   },
   zh: {
     appTitle: 'YouTube 影片下載器',
@@ -99,7 +108,7 @@ const i18n = {
     metaJson: '影片資訊 (.info.json)',
     startDownload: '開始下載',
     checkingSystem: '正在檢查系統環境...',
-    sysReady: '✅ 系統檢查：就緒 (已偵測到 Python 與 FFmpeg)',
+    sysReady: '✅ 系統檢查：就緒 (已偵測到 yt-dlp 與 FFmpeg)',
     sysFailed: '❌ 系統檢查失敗：',
     sysUnreachable: '❌ 無法連接後端伺服器',
     progressLogLabel: '進度日誌',
@@ -107,7 +116,7 @@ const i18n = {
     viewSource: '查看原始碼',
     alertNoUrl: '請輸入網址',
     alertPathError: '下載路徑錯誤：',
-    logSysMissing: '缺少必要套件！請確認已安裝 Python 與 FFmpeg。',
+    logSysMissing: '缺少必要套件！需要 Python 與 yt-dlp：請先安裝 Python，再於 server 資料夾執行 "npm install"。',
     logChecking: '檢查中...',
     logTypePlaylist: '播放清單 / 頻道',
     logTypeVideo: '單一影片',
@@ -121,7 +130,9 @@ const i18n = {
     logPathFailed: '無法向伺服器驗證路徑。',
     logStartDownload: '開始下載：',
     logProcessFinished: '處理完成。',
-    uiDownloading: '下載中...'
+    uiDownloading: '下載中...',
+    cancelDownload: '取消',
+    logCancelled: '已取消下載。'
   }
 };
 
@@ -189,6 +200,9 @@ const appendLog = (message: string, type: 'info' | 'error' | 'success' | 'progre
   else div.className = 'text-blue-300'; // info
 
   logContainer.appendChild(div);
+  while (logContainer.childElementCount > MAX_LOG_LINES) {
+    logContainer.firstElementChild?.remove();
+  }
   logContainer.scrollTop = logContainer.scrollHeight;
 };
 
@@ -214,15 +228,15 @@ if (savedCookie) {
 
 const checkDependencies = async () => {
   try {
-    const res = await fetch('http://localhost:3000/api/check-dependencies');
+    const res = await fetch(`${API_BASE}/api/check-dependencies`);
     const data = await res.json();
 
     if (data.ready) {
-      systemStatus.textContent = t('sysReady');
+      systemStatus.textContent = `${t('sysReady')} — yt-dlp ${data.ytDlpVersion}`;
       systemStatus.className = 'text-xs text-center text-green-600 mt-2 font-semibold';
       downloadBtn.disabled = false;
     } else {
-      systemStatus.innerHTML = `${t('sysFailed')} <br>Python: ${data.python ? '✅' : '❌'}, FFmpeg: ${data.ffmpeg ? '✅' : '❌'}`;
+      systemStatus.textContent = `${t('sysFailed')} yt-dlp: ${data.ytDlp ? '✅' : '❌'}, FFmpeg: ${data.ffmpeg ? '✅' : '❌'}, Python: ${data.python ? '✅' : '❌'}`;
       systemStatus.className = 'text-xs text-center text-red-600 mt-2 font-bold';
       downloadBtn.disabled = true;
       appendLog(t('logSysMissing'), 'error');
@@ -284,7 +298,7 @@ const performUrlCheck = async () => {
   urlInfo.textContent = '';
 
   try {
-    const res = await fetch('http://localhost:3000/api/get-info', {
+    const res = await fetch(`${API_BASE}/api/get-info`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -298,12 +312,19 @@ const performUrlCheck = async () => {
     if (res.ok) {
       urlInfo.classList.remove('hidden');
       const typeText = data.is_playlist ? t('logTypePlaylist') : t('logTypeVideo');
-      urlInfo.innerHTML = `
-        <div class="font-bold">${data.title}</div>
-        <div>${t('logUploader')} ${data.uploader}</div>
-        <div>${t('logType')} ${typeText}</div>
-        <div>${t('logCount')} ${data.video_count} ${t('logCountFound')}</div>
-      `;
+      // Build with textContent: titles and uploader names come from YouTube and may contain HTML
+      const rows: [string, string?][] = [
+        [`${data.title}`, 'font-bold'],
+        [`${t('logUploader')} ${data.uploader}`],
+        [`${t('logType')} ${typeText}`],
+        [`${t('logCount')} ${data.video_count} ${t('logCountFound')}`],
+      ];
+      for (const [text, className] of rows) {
+        const row = document.createElement('div');
+        row.textContent = text;
+        if (className) row.className = className;
+        urlInfo.appendChild(row);
+      }
       appendLog(`${t('logCheckSuccess')} ${data.video_count} ${t('logCountFound')} ("${data.title}")`, 'success');
     } else {
       throw new Error(data.error);
@@ -359,7 +380,7 @@ downloadBtn.addEventListener('click', async () => {
   // Pre-check Path if provided
   if (path) {
     try {
-      const pathRes = await fetch('http://localhost:3000/api/check-path', {
+      const pathRes = await fetch(`${API_BASE}/api/check-path`, {
          method: 'POST',
          headers: { 'Content-Type': 'application/json' },
          body: JSON.stringify({ downloadPath: path })
@@ -382,9 +403,16 @@ downloadBtn.addEventListener('click', async () => {
   clearLogs();
   appendLog(`${t('logStartDownload')} ${url}`, 'info');
 
+  // Aborting the request closes the connection, which makes the server stop yt-dlp
+  const abortController = new AbortController();
+  const onCancel = () => abortController.abort();
+  cancelBtn.addEventListener('click', onCancel);
+  cancelBtn.classList.remove('hidden');
+
   try {
-    const response = await fetch('http://localhost:3000/api/download', {
+    const response = await fetch(`${API_BASE}/api/download`, {
       method: 'POST',
+      signal: abortController.signal,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -399,7 +427,8 @@ downloadBtn.addEventListener('click', async () => {
     });
 
     if (!response.ok) {
-      throw new Error(`Server returned ${response.status} ${response.statusText}`);
+      const body = await response.json().catch(() => null);
+      throw new Error(body?.error || `Server returned ${response.status} ${response.statusText}`);
     }
 
     const reader = response.body?.getReader();
@@ -458,8 +487,14 @@ downloadBtn.addEventListener('click', async () => {
     }
 
   } catch (error: any) {
-    appendLog(`Error: ${error.message}`, 'error');
+    if (error.name === 'AbortError') {
+      appendLog(t('logCancelled'), 'error');
+    } else {
+      appendLog(`Error: ${error.message}`, 'error');
+    }
   } finally {
+    cancelBtn.removeEventListener('click', onCancel);
+    cancelBtn.classList.add('hidden');
     downloadBtn.disabled = false;
     downloadBtn.textContent = t('startDownload');
     appendLog(t('logProcessFinished'), 'info');

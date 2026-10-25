@@ -7,12 +7,81 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const os = require('os');
+const { YOUTUBE_DL_PATH } = require('yt-dlp-exec/src/constants');
 
 const app = express();
 const PORT = 3000;
+// Only listen on loopback so other machines on the network cannot drive the downloader
+const HOST = '127.0.0.1';
 
-app.use(cors());
+// Only the local frontend (any port on localhost / 127.0.0.1) may call this API
+const isAllowedOrigin = (origin) => /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+
+// Reject requests whose Host header is not local (defends against DNS rebinding)
+app.use((req, res, next) => {
+  const host = (req.headers.host || '').replace(/:\d+$/, '');
+  if (host !== 'localhost' && host !== '127.0.0.1') {
+    return res.status(403).json({ error: 'Forbidden host' });
+  }
+  next();
+});
+
+// Browsers still send "simple" cross-site requests even when CORS headers are missing,
+// so block any request that carries a foreign Origin instead of relying on CORS alone
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && !isAllowedOrigin(origin)) {
+    return res.status(403).json({ error: 'Forbidden origin' });
+  }
+  next();
+});
+
+app.use(cors({ origin: (origin, cb) => cb(null, !origin || isAllowedOrigin(origin)) }));
 app.use(bodyParser.json());
+
+/**
+ * Only accept http(s) URLs. yt-dlp-exec puts the URL first on the command line without a
+ * "--" separator, so a value such as "--exec=..." would otherwise be parsed as a yt-dlp option.
+ */
+const parseVideoUrl = (value) => {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+    return trimmed;
+  } catch (e) {
+    return null;
+  }
+};
+
+// Download path must be empty (use default) or an absolute path
+const isValidDownloadPath = (value) =>
+  value === undefined || value === null || value === '' ||
+  (typeof value === 'string' && path.isAbsolute(value));
+
+const removeFile = (filePath) => {
+  if (filePath && fs.existsSync(filePath)) {
+    try { fs.unlinkSync(filePath); } catch (e) {}
+  }
+};
+
+/**
+ * Keep yt-dlp current: YouTube changes often break old versions, and the binary is
+ * otherwise only fetched once at `npm install` time. Requests wait for this to finish.
+ */
+let updatePromise = Promise.resolve();
+const updateYtDlp = () => {
+  if (process.env.SKIP_YTDLP_UPDATE) return Promise.resolve();
+  if (!fs.existsSync(YOUTUBE_DL_PATH)) {
+    console.error(`yt-dlp binary not found at ${YOUTUBE_DL_PATH}. Run "npm install" in the server folder.`);
+    return Promise.resolve();
+  }
+  console.log('Checking for yt-dlp updates...');
+  return ytDlp.exec(undefined, { update: true })
+    .then(({ stdout }) => console.log(stdout.trim()))
+    .catch((err) => console.error(`yt-dlp update failed (continuing with current version): ${err.message}`));
+};
 
 // Default download directory
 const DEFAULT_DOWNLOAD_DIR = path.join(__dirname, 'downloads');
@@ -36,14 +105,30 @@ app.get('/api/check-dependencies', async (req, res) => {
     });
   };
 
-  const hasPython = await checkCommand('python3 --version') || await checkCommand('python --version');
-  // ffmpeg-static provides the binary path, so we check if it exists
-  const hasFfmpeg = fs.existsSync(ffmpegStatic);
+  await updatePromise;
+
+  // The Windows yt-dlp.exe is standalone; the Unix build is a zipapp that needs python3
+  const hasPython = process.platform === 'win32'
+    ? true
+    : await checkCommand('python3 --version');
+
+  let ytDlpVersion = null;
+  if (fs.existsSync(YOUTUBE_DL_PATH)) {
+    try {
+      const { stdout } = await ytDlp.exec(undefined, { version: true });
+      ytDlpVersion = stdout.trim();
+    } catch (e) {}
+  }
+
+  // ffmpeg-static provides the binary path (null on unsupported platforms), so we check if it exists
+  const hasFfmpeg = Boolean(ffmpegStatic) && fs.existsSync(ffmpegStatic);
 
   res.json({
+    ytDlp: Boolean(ytDlpVersion),
+    ytDlpVersion,
     python: hasPython,
     ffmpeg: hasFfmpeg,
-    ready: hasPython && hasFfmpeg
+    ready: Boolean(ytDlpVersion) && hasPython && hasFfmpeg
   });
 });
 
@@ -53,6 +138,9 @@ app.get('/api/check-dependencies', async (req, res) => {
  */
 app.post('/api/check-path', (req, res) => {
   const { downloadPath } = req.body;
+  if (!isValidDownloadPath(downloadPath)) {
+    return res.json({ valid: false, error: 'Path must be an absolute path' });
+  }
   const targetPath = downloadPath || DEFAULT_DOWNLOAD_DIR;
 
   try {
@@ -73,11 +161,14 @@ app.post('/api/check-path', (req, res) => {
  * Requirement 3: Check website URL and get video count
  */
 app.post('/api/get-info', async (req, res) => {
-  const { url, browser, cookieContent } = req.body;
+  const { browser, cookieContent } = req.body;
+  const url = parseVideoUrl(req.body.url);
 
   if (!url) {
-    return res.status(400).json({ error: 'URL is required' });
+    return res.status(400).json({ error: 'A valid http(s) URL is required' });
   }
+
+  await updatePromise;
 
   let cookieFilePath = null;
   try {
@@ -110,19 +201,21 @@ app.post('/api/get-info', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: `Failed to fetch info: ${err.message}` });
   } finally {
-    if (cookieFilePath && fs.existsSync(cookieFilePath)) {
-      try { fs.unlinkSync(cookieFilePath); } catch(e) {}
-    }
+    removeFile(cookieFilePath);
   }
 });
 
 // Download endpoint with Server-Sent Events (SSE) for real-time progress updates
 app.post('/api/download', async (req, res) => {
-  const { url, downloadPath, quality, metadata, browser, cookieContent } = req.body;
+  const { downloadPath, quality, metadata, browser, cookieContent } = req.body;
+  const url = parseVideoUrl(req.body.url);
 
-  // Validate that a URL is provided
+  // Validate that a usable URL and path are provided
   if (!url) {
-    return res.status(400).json({ error: 'URL is required' });
+    return res.status(400).json({ error: 'A valid http(s) URL is required' });
+  }
+  if (!isValidDownloadPath(downloadPath)) {
+    return res.status(400).json({ error: 'Download path must be an absolute path' });
   }
 
   // Set up SSE headers to keep the connection open and stream data
@@ -133,6 +226,7 @@ app.post('/api/download', async (req, res) => {
 
   // Helper function to send SSE events to the client
   const sendEvent = (type, data) => {
+    if (res.writableEnded || res.destroyed) return;
     res.write(`event: ${type}\n`);
     res.write(`data: ${JSON.stringify(data)}\n\n`);
   };
@@ -145,7 +239,21 @@ app.post('/api/download', async (req, res) => {
   let channelFolder = '';
   let cookieFilePath = null;
   let allEntries = [];
-  
+  let subprocess = null;
+  let clientGone = false;
+
+  // res 'close' fires when the response finishes or the client disconnects. (req 'close'
+  // fires once the request body has been read, so it cannot be used to detect a disconnect.)
+  res.on('close', () => {
+    clientGone = !res.writableFinished;
+    if (subprocess && subprocess.exitCode === null) {
+      // Client cancelled or closed the page: stop yt-dlp instead of downloading in the background
+      subprocess.kill();
+    } else {
+      removeFile(cookieFilePath);
+    }
+  });
+
   if (cookieContent) {
     cookieFilePath = path.join(os.tmpdir(), `temp_cookie_${crypto.randomUUID()}.txt`);
     try {
@@ -155,13 +263,8 @@ app.post('/api/download', async (req, res) => {
       return res.end();
     }
   }
-  
-  // Cleanup on early client disconnect
-  req.on('close', () => {
-    if (cookieFilePath && fs.existsSync(cookieFilePath)) {
-      try { fs.unlinkSync(cookieFilePath); } catch(e) {}
-    }
-  });
+
+  await updatePromise;
 
   try {
     sendEvent('info', { message: 'Fetching channel info to create folder...' });
@@ -241,16 +344,21 @@ app.post('/api/download', async (req, res) => {
       fs.mkdirSync(finalOutputDir, { recursive: true });
     } catch (err) {
       sendEvent('error', { message: `Failed to create directory: ${err.message}` });
-      if (cookieFilePath && fs.existsSync(cookieFilePath)) {
-        try { fs.unlinkSync(cookieFilePath); } catch(e) {}
-      }
       return res.end();
     }
   }
 
+  // The client may have disconnected while channel info was being fetched
+  if (clientGone) {
+    removeFile(cookieFilePath);
+    return;
+  }
+
   // Configure yt-dlp arguments
   const flags = {
-    output: path.join(finalOutputDir, '%(title)s.%(ext)s'), // Save inside the channel folder
+    // Save inside the channel folder; the video ID avoids collisions between identical titles
+    // and the byte limit keeps paths under the Windows length limit
+    output: path.join(finalOutputDir, '%(title).150B [%(id)s].%(ext)s'),
     ffmpegLocation: ffmpegStatic, // Use the static FFmpeg binary
     noWarnings: true,
     preferFreeFormats: true,
@@ -292,9 +400,11 @@ app.post('/api/download', async (req, res) => {
   // Expecting: { subs: boolean, thumbnail: boolean, json: boolean }
   if (metadata) {
     if (metadata.thumbnail) {
+      // Save the thumbnail as a .jpg next to the video. Embedding is not used because it needs
+      // ffprobe, which ffmpeg-static does not ship; the failure made yt-dlp exit with an error
+      // and skipped writing download_archive.txt
       flags.writeThumbnail = true;
       flags.convertThumbnails = 'jpg';
-      flags.embedThumbnail = true;
     }
     if (metadata.subs) flags.writeSubs = true;
     if (metadata.json) flags.writeInfoJson = true;
@@ -309,7 +419,7 @@ app.post('/api/download', async (req, res) => {
   sendEvent('info', { message: `Output directory: ${finalOutputDir}` });
 
   try {
-    const subprocess = ytDlp.exec(url, flags);
+    subprocess = ytDlp.exec(url, flags);
 
     subprocess.stdout.on('data', (data) => {
       const output = data.toString();
@@ -343,35 +453,39 @@ app.post('/api/download', async (req, res) => {
       });
     });
 
+    // execa rejects when the process fails or is killed; results are handled via events below
+    subprocess.catch(() => {});
+
     subprocess.on('close', (code) => {
+      removeFile(cookieFilePath);
+      if (clientGone) return;
       if (code === 0) {
         sendEvent('complete', { message: 'Download completed successfully!' });
       } else {
         sendEvent('error', { message: `Process exited with code ${code}` });
       }
-      if (cookieFilePath && fs.existsSync(cookieFilePath)) {
-        try { fs.unlinkSync(cookieFilePath); } catch(e) {}
-      }
       res.end();
     });
 
     subprocess.on('error', (err) => {
-       sendEvent('error', { message: `Spawn error: ${err.message}` });
-       if (cookieFilePath && fs.existsSync(cookieFilePath)) {
-         try { fs.unlinkSync(cookieFilePath); } catch(e) {}
-       }
-       res.end();
+      removeFile(cookieFilePath);
+      if (clientGone) return;
+      sendEvent('error', { message: `Spawn error: ${err.message}` });
+      res.end();
     });
 
   } catch (error) {
+    removeFile(cookieFilePath);
     sendEvent('error', { message: `Execution error: ${error.message}` });
-    if (cookieFilePath && fs.existsSync(cookieFilePath)) {
-      try { fs.unlinkSync(cookieFilePath); } catch(e) {}
-    }
     res.end();
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  updatePromise = updateYtDlp();
+  app.listen(PORT, HOST, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+  });
+}
+
+module.exports = { app, parseVideoUrl, isValidDownloadPath };

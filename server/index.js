@@ -256,6 +256,8 @@ app.post('/api/download', async (req, res) => {
     preferFreeFormats: true,
     // Prevent duplicate downloads using an archive file
     downloadArchive: path.join(finalOutputDir, 'download_archive.txt'),
+    minSleepInterval: 5,
+    maxSleepInterval: 30,
   };
 
   if (cookieFilePath) {
@@ -317,6 +319,11 @@ app.post('/api/download', async (req, res) => {
         let status = 'downloading';
         if (line.includes('[download]')) status = 'downloading';
         if (line.includes('[info]')) status = 'info';
+
+        if (line.includes('Sleeping') || line.includes('sleep')) {
+          console.log(`[Wait] ${line}`);
+          sendEvent('info', { message: line.trim() });
+        }
 
         sendEvent('progress', { raw: line, status });
       });

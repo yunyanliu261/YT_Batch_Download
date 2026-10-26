@@ -2,7 +2,41 @@
 
 All notable changes to this project will be documented in this file.
 
-## [2024-05-18]
+## [1.2.0] - 2026-10-26
+
+### Security
+- Backend now listens on `127.0.0.1` only (was all network interfaces).
+- Requests from other websites are rejected (Origin check + restricted CORS), and non-local `Host` headers are rejected to block DNS rebinding. Previously any web page could start downloads or create folders.
+- URLs must be `http(s)://`. Values starting with `--` were passed to yt-dlp as command-line options.
+- Download path must be absolute.
+- Video titles in the URL check panel are rendered as text instead of HTML.
+
+### Fixed
+- Downloads with "Thumbnail" checked always ended with `ffprobe not found` and did not record `download_archive.txt`. Thumbnails are now saved as `.jpg` files next to the video instead of being embedded.
+- Closing the page or cancelling now stops yt-dlp instead of letting it keep downloading in the background.
+- Uploaded cookie files are now cleaned up when the client disconnects.
+- `npm install` no longer fails on systems without a `python` command (Ubuntu ships only `python3`).
+
+### Added
+- Cancel button while a download is running.
+- Progress bars for the current file and for the whole playlist/channel (yt-dlp output is now parsed on the server).
+- Playlists are saved to `<channel>/<playlist title>/`. The download archive stays in the channel folder, so videos already downloaded with earlier versions are still skipped.
+- `start_app.sh` for macOS / Linux.
+- `yt-dlp` now uses the Node.js running the server to solve YouTube's JavaScript challenges (`--js-runtimes node:<path>`, needs Node.js 22+). Without it, downloads with cookies failed with "Requested format is not available", and age-restricted videos failed even for accounts that can play them. The system check and start scripts warn when Node.js is older than 22, and failure hints explain what to check when cookies were already given.
+- Start scripts check that ports 3000 and 5173 are free first. Before, if an older copy was still running, the new backend failed silently and the page kept talking to the old one (downloads went to the old folder). The backend also prints a clear message when its port is taken, Vite no longer switches to another port silently (`--strictPort`), and the Windows server windows stay open so errors can be read.
+- Download summary when a download finishes (downloaded / skipped / failed) with an explanation for each failure type: members-only, age-restricted, bot check, private, region-blocked, DRM/format, unavailable. When the failures could be fixed by signing in and no cookies were given, the Cookies option is highlighted.
+- Random 5–30 second wait before each video of a playlist/channel to avoid YouTube rate limits (PR #2). Single videos start right away.
+- yt-dlp is updated automatically when the server starts; the system check shows the yt-dlp version and checks the yt-dlp binary instead of only Python.
+- Backend tests (`cd server && npm test`).
+
+### Changed
+- Replaced the unmaintained `yt-dlp-exec` (last release 2022) with `youtube-dl-exec`. It passes the URL after `--`, so it can never be read as a yt-dlp option. On Windows, `start_app.bat` skips its Python check because `yt-dlp.exe` does not need Python. Existing installs pick up the new package automatically through `start_app.bat` / `start_app.sh`.
+- Backend split from a single `index.js` into modules under `server/src/` (see `PROJECT_STRUCTURE.md`).
+- Removed unused Vite template files (`counter.ts`, `typescript.svg`).
+- File names now include the video ID (`Title [id].mp4`) and titles are limited to 150 bytes to avoid name collisions and Windows path length errors. Previously downloaded videos are still skipped via `download_archive.txt`.
+- The progress log keeps the latest 2000 lines.
+
+## [2026-03-11]
 - Created `PROJECT_STRUCTURE.md` to provide detailed documentation on the project architecture and the purpose of each file and directory.
 - Updated the repository link in the UI footer to point to `https://github.com/yunyanliu261/YT_Batch_Download`.
 - Updated `README.md` to reflect the new repository URL.

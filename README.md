@@ -40,10 +40,11 @@ For Windows users, starting the app is completely automated.
 2.  Double-click the `start_app.bat` file in the root directory.
 3.  The script will automatically:
     - Check if Node.js is installed.
+    - Check that ports 3000 and 5173 are free. If another copy of the app (for example an older version) is still running, it tells you how to stop it instead of starting.
     - Install all necessary dependencies for the server and client (if missing).
     - Start the backend server (Port 3000) and frontend UI server in the background.
     - Open your default web browser to the application page.
-4.  To stop the application, simply press any key in the command prompt window that opened, and it will safely terminate the background processes.
+4.  To stop the application, close the "YouTube Downloader Backend" and "YouTube Downloader Frontend" windows. Startup errors stay visible in these windows.
 
 ## Installation & Running (Mac/Linux)
 
@@ -97,6 +98,8 @@ To start things manually instead:
 7.  Click **Start Download**. The "Progress Log" will display real-time updates as `yt-dlp` processes your request.
 
 ## Troubleshooting
+
+-   **"Port 3000/5173 is already in use"** or **the page looks like an older version**: another copy of the app is still running. Close its "YouTube Downloader Backend/Frontend" windows. If you cannot find them, run `netstat -ano | findstr ":3000 :5173"` (Windows) or `lsof -i :3000 -i :5173` (macOS/Linux) and stop the listed PID with `taskkill /PID <PID> /F` or `kill <PID>`. Then start the app again.
 
 -   **Members-only or age-restricted videos** ("This video is not available", "Sign in to confirm your age"): these need a signed-in account. Members-only videos need an account that has joined the channel's membership; age-restricted videos need an age-verified account. Upload a `cookies.txt` exported from that account (see the [yt-dlp guide on exporting YouTube cookies](https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies)) or choose the browser you are signed in with. Keep `cookies.txt` private: it works like your login.
 

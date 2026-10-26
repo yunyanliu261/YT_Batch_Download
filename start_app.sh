@@ -17,6 +17,9 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 1
 fi
 
+# Stop if another copy of the app (for example an older version) is still using the ports
+node scripts/check-ports.js || exit 1
+
 # Install server dependencies if missing (also after updating from a version that used yt-dlp-exec)
 if [ ! -d server/node_modules/youtube-dl-exec ]; then
   echo "Installing server dependencies..."
@@ -38,4 +41,5 @@ sleep 2
 
 echo "Starting Frontend Client (press Ctrl+C to stop)..."
 cd client
-npm run dev -- --open
+# --strictPort: fail instead of silently using another port
+npm run dev -- --open --strictPort

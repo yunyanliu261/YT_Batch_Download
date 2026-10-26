@@ -1,4 +1,6 @@
 @echo off
+:: Run from the folder this script is in
+cd /d "%~dp0"
 echo Starting YouTube Downloader...
 
 :: Check if Node.js is installed
@@ -7,6 +9,13 @@ if %errorlevel% neq 0 (
     echo Node.js is not installed. Please install Node.js from https://nodejs.org/
     pause
     exit /b
+)
+
+:: Stop if another copy of the app (for example an older version) is still using the ports
+node scripts\check-ports.js
+if %errorlevel% neq 0 (
+    pause
+    exit /b 1
 )
 
 :: Install server dependencies if missing (also after updating from a version that used yt-dlp-exec)
@@ -28,14 +37,15 @@ if not exist "client\node_modules" (
 )
 
 echo Starting Backend Server...
-start "YouTube Downloader Backend" cmd /c "cd server && node index.js"
+:: cmd /k keeps the window open so startup errors stay readable
+start "YouTube Downloader Backend" cmd /k "cd server && node index.js"
 
 echo Starting Frontend Client...
 :: Wait a moment for backend to initialize
 timeout /t 2 >nul
 cd client
-:: Start Vite and open the browser automatically
-start "YouTube Downloader Frontend" cmd /c "npm run dev -- --open"
+:: Start Vite and open the browser automatically (--strictPort: fail instead of silently using another port)
+start "YouTube Downloader Frontend" cmd /k "npm run dev -- --open --strictPort"
 
 echo.
 echo Application started!

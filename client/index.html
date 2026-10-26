@@ -82,8 +82,8 @@
             </select>
           </div>
 
-          <!-- Cookies Select -->
-          <div>
+          <!-- Cookies Select (highlighted when failed videos need a signed-in account) -->
+          <div id="cookie-section" class="transition">
             <div class="flex items-center mb-1">
               <label data-i18n="cookieLabel" for="cookie-select" class="block text-sm font-medium text-gray-700">Cookies (Optional)</label>
               <!-- Info Icon with Tooltip -->
@@ -123,6 +123,7 @@
                   hover:file:bg-blue-100
                 "/>
             </div>
+            <p id="cookie-hint" data-i18n="cookieHint" class="hidden mt-2 text-xs font-semibold text-red-600"></p>
           </div>
 
           <!-- Metadata Checkboxes -->
@@ -183,6 +184,9 @@
             <div id="progress-file-bar" class="bg-green-500 h-1.5 rounded transition-all" style="width: 0%"></div>
           </div>
         </div>
+
+        <!-- Download Summary (shown when a download finishes) -->
+        <div id="summary-panel" class="hidden p-3 rounded-md border text-sm space-y-1"></div>
 
         <!-- Cancel Button (shown while downloading) -->
         <button

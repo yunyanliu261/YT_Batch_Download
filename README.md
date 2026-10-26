@@ -19,6 +19,7 @@ A lightweight, local web-based tool to download YouTube videos or entire channel
   - Info JSON (video description, tags, etc.)
 - **Custom Download Path**: Specify exactly where files should be saved on your machine.
 - **Real-time Progress**: Progress bars for the current file and the whole playlist/channel, plus the download log. Downloads can be cancelled at any time.
+- **Clear Error Explanations**: When a download finishes, a summary shows how many videos were downloaded, skipped or failed, and why (members-only, age-restricted, bot check, private, region-blocked, DRM). If signing in would help, the Cookies option is highlighted.
 - **Rate Limit Protection**: When downloading a playlist or channel, the app waits a random 5–30 seconds before each video to avoid being blocked by YouTube. Single videos start immediately.
 - **Always Up to Date**: The bundled `yt-dlp` is updated automatically every time the server starts.
 
@@ -96,6 +97,8 @@ To start things manually instead:
 7.  Click **Start Download**. The "Progress Log" will display real-time updates as `yt-dlp` processes your request.
 
 ## Troubleshooting
+
+-   **Members-only or age-restricted videos** ("This video is not available", "Sign in to confirm your age"): these need a signed-in account. Members-only videos need an account that has joined the channel's membership; age-restricted videos need an age-verified account. Upload a `cookies.txt` exported from that account (see the [yt-dlp guide on exporting YouTube cookies](https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies)) or choose the browser you are signed in with. Keep `cookies.txt` private: it works like your login.
 
 -   **"System Check Failed"**: Run `npm install` again in the `server` folder so the yt-dlp binary is downloaded (on Windows, run `set YOUTUBE_DL_SKIP_PYTHON_CHECK=1` first if Python is not installed). On macOS/Linux, also make sure `python3` (3.9+) is installed.
 -   **403 Forbidden / Sign in to confirm your age**: Some videos are age-restricted. You can bypass this by using the "Browser Cookies" dropdown in the UI to authenticate using your local browser session.

@@ -27,6 +27,7 @@
 *   **`src/validation.js`**: 驗證輸入：網址必須是 `http(s)://`、下載路徑必須是絕對路徑、瀏覽器與畫質只接受已知選項、資料夾名稱去除不合法字元。
 *   **`src/cookies.js`**: 上傳的 `cookies.txt` 暫存檔的建立與刪除。
 *   **`src/ytdlp.js`**: 所有與 `yt-dlp` 有關的邏輯：自動更新、版本檢查、取得影片資訊、組合下載參數、解析進度輸出。
+*   **`src/errors.js`**: 將 yt-dlp 的錯誤分類（會員限定、年齡限制、機器人驗證、私人、地區限制、DRM／格式、無法取得），並在下載結束時產生摘要（成功／略過／失敗數量、是否建議提供 cookies）。
 *   **`src/library.js`**: 決定下載資料夾（影片與頻道放在 `<頻道>/`，播放清單放在 `<頻道>/<清單名稱>/`），讀取 `download_archive.txt` 並計算已下載／待下載數量。
 *   **`src/routes/system.js`**: `/api/health`、`/api/check-dependencies`（檢查 yt-dlp、FFmpeg、Python）、`/api/check-path`。
 *   **`src/routes/info.js`**: `/api/get-info`：下載前取得影片、播放清單或頻道的標題、上傳者與影片數量。

@@ -20,6 +20,11 @@ const subCheckboxes = [metaSubs, metaThumb, metaJson];
 const downloadBtn = document.getElementById('download-btn') as HTMLButtonElement;
 const cancelBtn = document.getElementById('cancel-btn') as HTMLButtonElement;
 
+// Summary and cookie hint elements
+const summaryPanel = document.getElementById('summary-panel') as HTMLDivElement;
+const cookieSection = document.getElementById('cookie-section') as HTMLDivElement;
+const cookieHint = document.getElementById('cookie-hint') as HTMLParagraphElement;
+
 // Progress panel elements
 const progressPanel = document.getElementById('progress-panel') as HTMLDivElement;
 const progressItemText = document.getElementById('progress-item-text') as HTMLSpanElement;
@@ -92,7 +97,18 @@ const i18n = {
     logProcessFinished: 'Process finished.',
     uiDownloading: 'Downloading...',
     cancelDownload: 'Cancel',
-    logCancelled: 'Download cancelled.'
+    logCancelled: 'Download cancelled.',
+    summaryTitle: 'Download summary',
+    summaryCounts: 'Downloaded {downloaded} · Skipped (already downloaded) {skipped} · Failed {failed}',
+    hintMembers: '{n} members-only video(s): provide cookies from an account that has joined this channel\'s membership.',
+    hintAge: '{n} age-restricted video(s): provide cookies from a signed-in, age-verified account.',
+    hintBot: '{n} video(s) blocked by YouTube\'s bot check: provide cookies, or wait a while and try again.',
+    hintPrivate: '{n} private video(s): only accounts that were granted access can download them (provide that account\'s cookies).',
+    hintGeo: '{n} video(s) are not available in your country.',
+    hintFormat: '{n} video(s) have no downloadable format (often DRM-protected content).',
+    hintUnavailable: '{n} video(s) are unavailable: removed, private, or members-only. If they are members-only, provide cookies from a member account.',
+    hintOther: '{n} video(s) failed for other reasons. See the log below.',
+    cookieHint: '⚠ Some videos need a signed-in account. Choose a browser or upload cookies.txt, then download again.'
   },
   zh: {
     appTitle: 'YouTube 影片下載器',
@@ -145,7 +161,18 @@ const i18n = {
     logProcessFinished: '處理完成。',
     uiDownloading: '下載中...',
     cancelDownload: '取消',
-    logCancelled: '已取消下載。'
+    logCancelled: '已取消下載。',
+    summaryTitle: '下載摘要',
+    summaryCounts: '成功 {downloaded} · 略過（已下載過）{skipped} · 失敗 {failed}',
+    hintMembers: '{n} 支會員限定影片：請提供「已加入該頻道會員」帳號的 cookies。',
+    hintAge: '{n} 支年齡限制影片：請提供「已登入且通過年齡驗證」帳號的 cookies。',
+    hintBot: '{n} 支影片被 YouTube 判定為機器人：請提供 cookies，或稍後再試。',
+    hintPrivate: '{n} 支私人影片：只有獲得授權的帳號能下載（請提供該帳號的 cookies）。',
+    hintGeo: '{n} 支影片在你所在的地區無法觀看。',
+    hintFormat: '{n} 支影片沒有可下載的格式（通常是受 DRM 保護的內容）。',
+    hintUnavailable: '{n} 支影片無法取得：可能已刪除、設為私人或為會員限定。若是會員限定，請提供已加入會員帳號的 cookies。',
+    hintOther: '{n} 支影片因其他原因失敗，請查看下方 log。',
+    cookieHint: '⚠ 部分影片需要登入才能下載：請選擇瀏覽器或上傳 cookies.txt 後重新下載。'
   }
 };
 
@@ -281,6 +308,85 @@ const resetProgress = () => {
   renderProgress();
   progressPanel.classList.remove('hidden');
 };
+
+// --- Download Summary ---
+type ErrorCategory = 'members' | 'age' | 'bot' | 'private' | 'geo' | 'format' | 'unavailable' | 'other';
+
+interface DownloadSummary {
+  total: number;
+  downloaded: number;
+  skipped: number;
+  failed: number;
+  categories: Partial<Record<ErrorCategory, number>>;
+  usedCookies: boolean;
+  suggestCookies: boolean;
+}
+
+const CATEGORY_HINTS: Record<ErrorCategory, keyof typeof i18n['en']> = {
+  members: 'hintMembers',
+  age: 'hintAge',
+  bot: 'hintBot',
+  private: 'hintPrivate',
+  geo: 'hintGeo',
+  format: 'hintFormat',
+  unavailable: 'hintUnavailable',
+  other: 'hintOther',
+};
+
+const COOKIE_HIGHLIGHT = ['ring-2', 'ring-red-500', 'rounded-md', 'p-2'];
+
+const setCookieHighlight = (on: boolean) => {
+  COOKIE_HIGHLIGHT.forEach((c) => cookieSection.classList.toggle(c, on));
+  cookieHint.classList.toggle('hidden', !on);
+};
+
+const hideSummary = () => {
+  summaryPanel.classList.add('hidden');
+  summaryPanel.replaceChildren();
+  setCookieHighlight(false);
+};
+
+const showSummary = (summary: DownloadSummary) => {
+  const counts = t('summaryCounts')
+    .replace('{downloaded}', String(summary.downloaded))
+    .replace('{skipped}', String(summary.skipped))
+    .replace('{failed}', String(summary.failed));
+
+  const hints = (Object.keys(CATEGORY_HINTS) as ErrorCategory[])
+    .filter((category) => summary.categories[category])
+    .map((category) => t(CATEGORY_HINTS[category]).replace('{n}', String(summary.categories[category])));
+
+  const title = document.createElement('div');
+  title.className = 'font-bold';
+  title.textContent = t('summaryTitle');
+  const countsRow = document.createElement('div');
+  countsRow.textContent = counts;
+  summaryPanel.replaceChildren(title, countsRow, ...hints.map((hint) => {
+    const row = document.createElement('div');
+    row.textContent = `• ${hint}`;
+    return row;
+  }));
+
+  // Green: no failures; amber: partial; red: nothing downloaded
+  const color = summary.failed === 0
+    ? 'bg-green-50 border-green-200 text-green-800'
+    : summary.downloaded > 0
+      ? 'bg-yellow-50 border-yellow-200 text-yellow-800'
+      : 'bg-red-50 border-red-200 text-red-800';
+  summaryPanel.className = `p-3 rounded-md border text-sm space-y-1 ${color}`;
+
+  appendLog(`[${t('summaryTitle')}] ${counts}`, summary.failed ? 'error' : 'success');
+  hints.forEach((hint) => appendLog(hint, 'error'));
+
+  if (summary.suggestCookies) {
+    setCookieHighlight(true);
+    cookieSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+};
+
+// Clear the highlight once the user picks a cookie source
+cookieSelect.addEventListener('change', () => setCookieHighlight(false));
+cookieFileInput.addEventListener('change', () => setCookieHighlight(false));
 
 // --- Handlers ---
 // --- Metadata UI Logic ---
@@ -436,6 +542,7 @@ downloadBtn.addEventListener('click', async () => {
   downloadBtn.disabled = true;
   downloadBtn.textContent = t('uiDownloading');
   clearLogs();
+  hideSummary();
   resetProgress();
   appendLog(`${t('logStartDownload')} ${url}`, 'info');
 
@@ -521,6 +628,8 @@ downloadBtn.addEventListener('click', async () => {
             Object.assign(progressState, { index: progressState.total, percent: 100 });
             renderProgress();
             appendLog(data.message, 'success');
+          } else if (eventType === 'summary') {
+            showSummary(data as DownloadSummary);
           } else if (eventType === 'download-plan') {
             appendLog(`[Plan] Total expected: ${data.total} | Already downloaded: ${data.downloaded} | Pending: ${data.pending}`, 'success');
           }

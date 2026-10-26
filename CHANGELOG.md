@@ -22,6 +22,7 @@ All notable changes to this project will be documented in this file.
 - Progress bars for the current file and for the whole playlist/channel (yt-dlp output is now parsed on the server).
 - Playlists are saved to `<channel>/<playlist title>/`. The download archive stays in the channel folder, so videos already downloaded with earlier versions are still skipped.
 - `start_app.sh` for macOS / Linux.
+- Download summary when a download finishes (downloaded / skipped / failed) with an explanation for each failure type: members-only, age-restricted, bot check, private, region-blocked, DRM/format, unavailable. When the failures could be fixed by signing in and no cookies were given, the Cookies option is highlighted.
 - Random 5–30 second wait before each video of a playlist/channel to avoid YouTube rate limits (PR #2). Single videos start right away.
 - yt-dlp is updated automatically when the server starts; the system check shows the yt-dlp version and checks the yt-dlp binary instead of only Python.
 - Backend tests (`cd server && npm test`).

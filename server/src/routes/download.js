@@ -4,6 +4,7 @@ const { DEFAULT_DOWNLOAD_DIR } = require('../config');
 const { parseVideoUrl, isValidDownloadPath, parseBrowser, parseQuality } = require('../validation');
 const { createCookieFile, removeFile, cookieFlags } = require('../cookies');
 const { resolveTarget, listEntries, readArchiveIds, buildPlan } = require('../library');
+const { createFailureTracker } = require('../errors');
 const ytdlp = require('../ytdlp');
 
 const router = express.Router();
@@ -29,6 +30,8 @@ const forEachLine = (stream, onLine) => {
  *   progress                  { percent, size, speed, eta }   current file
  *   item                      { index, total }                position in playlist/channel
  *   log                       { raw }                          other yt-dlp output
+ *   error                     { message, category? }           category: see src/errors.js
+ *   summary                   { total, downloaded, skipped, failed, categories, usedCookies, suggestCookies }
  */
 router.post('/download', async (req, res) => {
   const { downloadPath, metadata, cookieContent } = req.body;
@@ -108,14 +111,38 @@ router.post('/download', async (req, res) => {
 
   if (clientGone) return removeFile(cookieFilePath);
 
+  // Archive contents before the download: used for the plan now and to count successes later
+  let archivedBefore = new Set();
+  let skipped = 0;
   try {
+    archivedBefore = readArchiveIds(target.archivePath);
     if (entries.length > 0) {
-      sendEvent('download-plan', buildPlan(entries, readArchiveIds(target.archivePath)));
+      const plan = buildPlan(entries, archivedBefore);
+      skipped = plan.downloaded;
+      sendEvent('download-plan', plan);
     }
   } catch (err) {
     // A broken archive file only affects the plan summary
     console.error('Error analyzing archive:', err);
   }
+
+  const failures = createFailureTracker(new Map(entries.map((e) => [e.id, e.title || ''])));
+
+  const sendSummary = () => {
+    let downloaded = 0;
+    try {
+      const archivedAfter = readArchiveIds(target.archivePath);
+      downloaded = [...archivedAfter].filter((id) => !archivedBefore.has(id)).length;
+    } catch (err) {
+      console.error('Error reading archive:', err);
+    }
+    sendEvent('summary', failures.summary({
+      total: entries.length,
+      downloaded,
+      skipped,
+      usedCookies: Boolean(cookieFilePath || browser),
+    }));
+  };
 
   try {
     fs.mkdirSync(target.outputDir, { recursive: true });
@@ -151,7 +178,7 @@ router.post('/download', async (req, res) => {
 
     forEachLine(subprocess.stdout, handleLine);
     forEachLine(subprocess.stderr, (line) => {
-      if (line.includes('ERROR:')) sendEvent('error', { message: line });
+      if (line.startsWith('ERROR:')) sendEvent('error', { message: line, category: failures.add(line) });
       else sendEvent('log', { raw: line });
     });
 
@@ -162,6 +189,7 @@ router.post('/download', async (req, res) => {
       finished = true;
       removeFile(cookieFilePath);
       if (clientGone) return;
+      sendSummary();
       if (code === 0) {
         sendEvent('complete', { message: 'Download completed successfully!' });
       } else {

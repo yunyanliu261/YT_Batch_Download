@@ -6,8 +6,8 @@ const urlInfo = document.getElementById('url-info') as HTMLDivElement;
 const pathInput = document.getElementById('path-input') as HTMLInputElement;
 const rememberPathCheck = document.getElementById('remember-path-check') as HTMLInputElement;
 const qualitySelect = document.getElementById('quality-select') as HTMLSelectElement;
-const cookieSelect = document.getElementById('cookie-select') as HTMLSelectElement;
-const cookieFileInput = document.getElementById('cookie-file') as HTMLInputElement;
+const cookieSelect = document.getElementById('auth-browser-select') as HTMLSelectElement;
+const cookieFileInput = document.getElementById('auth-file') as HTMLInputElement;
 
 // Metadata check elements
 const metaAll = document.getElementById('meta-all') as HTMLInputElement;
@@ -22,8 +22,8 @@ const cancelBtn = document.getElementById('cancel-btn') as HTMLButtonElement;
 
 // Summary and cookie hint elements
 const summaryPanel = document.getElementById('summary-panel') as HTMLDivElement;
-const cookieSection = document.getElementById('cookie-section') as HTMLDivElement;
-const cookieHint = document.getElementById('cookie-hint') as HTMLParagraphElement;
+const cookieSection = document.getElementById('auth-section') as HTMLDivElement;
+const cookieHint = document.getElementById('auth-hint') as HTMLParagraphElement;
 
 // Progress panel elements
 const progressPanel = document.getElementById('progress-panel') as HTMLDivElement;

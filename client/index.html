@@ -82,10 +82,12 @@
             </select>
           </div>
 
-          <!-- Cookies Select (highlighted when failed videos need a signed-in account) -->
-          <div id="cookie-section" class="transition">
+          <!-- Cookies Select (highlighted when failed videos need a signed-in account).
+               Do not put "cookie" in ids or classes here: ad blockers' cookie-banner filter lists
+               hide elements such as #cookie-section and #cookie-hint. -->
+          <div id="auth-section" class="transition">
             <div class="flex items-center mb-1">
-              <label data-i18n="cookieLabel" for="cookie-select" class="block text-sm font-medium text-gray-700">Cookies (Optional)</label>
+              <label data-i18n="cookieLabel" for="auth-browser-select" class="block text-sm font-medium text-gray-700">Cookies (Optional)</label>
               <!-- Info Icon with Tooltip -->
               <div class="relative group ml-2 flex items-center justify-center w-4 h-4 rounded-full bg-gray-200 text-gray-500 hover:bg-gray-300 cursor-help text-xs font-bold">
                 ?
@@ -97,7 +99,7 @@
               </div>
             </div>
             <select
-              id="cookie-select"
+              id="auth-browser-select"
               class="w-full p-3 mb-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
             >
               <option data-i18n="cookieNone" value="none" selected>None (Public Video)</option>
@@ -110,10 +112,10 @@
             </select>
             
             <div class="flex flex-col mt-2">
-              <label for="cookie-file" class="block text-xs font-medium text-gray-500 mb-1">Or upload cookies.txt (Netscape format):</label>
+              <label for="auth-file" class="block text-xs font-medium text-gray-500 mb-1">Or upload cookies.txt (Netscape format):</label>
               <input 
                 type="file" 
-                id="cookie-file" 
+                id="auth-file" 
                 accept=".txt" 
                 class="block w-full text-sm text-gray-500
                   file:mr-4 file:py-2 file:px-4
@@ -123,7 +125,7 @@
                   hover:file:bg-blue-100
                 "/>
             </div>
-            <p id="cookie-hint" data-i18n="cookieHint" class="hidden mt-2 text-xs font-semibold text-red-600"></p>
+            <p id="auth-hint" data-i18n="cookieHint" class="hidden mt-2 text-xs font-semibold text-red-600"></p>
           </div>
 
           <!-- Metadata Checkboxes -->

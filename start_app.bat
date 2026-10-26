@@ -11,6 +11,17 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
+:: yt-dlp needs Node.js 22+ for downloads with cookies (members-only / age-restricted videos)
+node -e "process.exit(Number(process.versions.node.split('.')[0]) < 22 ? 1 : 0)"
+if %errorlevel% neq 0 (
+    echo.
+    echo [!] Node.js 22 or newer is recommended. Downloads with cookies ^(members-only / age-restricted videos^) need it.
+    echo     Current version:
+    node --version
+    echo     Update from https://nodejs.org/ ^(LTS^). Public videos still work.
+    echo.
+)
+
 :: Stop if another copy of the app (for example an older version) is still using the ports
 node scripts\check-ports.js
 if %errorlevel% neq 0 (

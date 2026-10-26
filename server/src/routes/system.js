@@ -27,6 +27,8 @@ router.get('/check-dependencies', async (req, res) => {
   const ffmpeg = ytdlp.hasFfmpeg();
 
   res.json({
+    // Node.js 22+ is needed for downloads with cookies (see jsRuntimeFlags); not required otherwise
+    node: { version: process.versions.node, supported: ytdlp.isNodeSupported(), minMajor: ytdlp.MIN_NODE_MAJOR },
     ytDlp: Boolean(ytDlpVersion),
     ytDlpVersion,
     python,

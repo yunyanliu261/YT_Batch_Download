@@ -12,6 +12,18 @@ const FORMATS = {
   '480p': 'bestvideo[height<=480]+bestaudio/best[height<=480]/bestvideo+bestaudio/best',
 };
 
+/**
+ * yt-dlp needs a JavaScript runtime to solve YouTube's "n challenge". Without one, the clients it
+ * uses when cookies are given (needed for members-only / age-restricted videos) return no video
+ * formats ("Requested format is not available"). Only Deno is enabled by default, so point it at
+ * the Node.js running this server. yt-dlp supports Node.js 22 or newer.
+ */
+const MIN_NODE_MAJOR = 22;
+const nodeMajor = (version = process.versions.node) => Number(String(version).split('.')[0]);
+const isNodeSupported = (version = process.versions.node) => nodeMajor(version) >= MIN_NODE_MAJOR;
+const jsRuntimeFlags = (version = process.versions.node, execPath = process.execPath) =>
+  (isNodeSupported(version) ? { jsRuntimes: `node:${execPath}` } : {});
+
 // Random wait between videos of a playlist/channel to avoid YouTube rate limits
 const SLEEP_INTERVAL = { min: 5, max: 30 };
 
@@ -57,6 +69,7 @@ const fetchInfo = (url, extraFlags = {}) =>
     dumpSingleJson: true,
     flatPlaylist: true,
     noWarnings: true,
+    ...jsRuntimeFlags(),
     ...extraFlags,
   });
 
@@ -76,6 +89,7 @@ const buildDownloadFlags = ({ outputDir, archivePath, quality, metadata, multipl
     newline: true,
     // Prevent duplicate downloads using an archive file
     downloadArchive: archivePath,
+    ...jsRuntimeFlags(),
     ...extraFlags,
   };
 
@@ -140,6 +154,9 @@ const parseProgressLine = (line) => {
 
 module.exports = {
   YTDLP_PATH,
+  MIN_NODE_MAJOR,
+  isNodeSupported,
+  jsRuntimeFlags,
   SLEEP_INTERVAL,
   youtubedl,
   hasBinary,

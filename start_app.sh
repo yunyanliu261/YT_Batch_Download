@@ -17,6 +17,12 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 1
 fi
 
+# yt-dlp needs Node.js 22+ for downloads with cookies (members-only / age-restricted videos)
+if ! node -e "process.exit(Number(process.versions.node.split('.')[0]) < 22 ? 1 : 0)"; then
+  echo "[!] Node.js 22 or newer is recommended (current: $(node --version)). Downloads with cookies"
+  echo "    (members-only / age-restricted videos) need it. Update from https://nodejs.org/. Public videos still work."
+fi
+
 # Stop if another copy of the app (for example an older version) is still using the ports
 node scripts/check-ports.js || exit 1
 

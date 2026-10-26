@@ -108,6 +108,10 @@ const i18n = {
     hintFormat: '{n} video(s) have no downloadable format (often DRM-protected content).',
     hintUnavailable: '{n} video(s) are unavailable: removed, private, or members-only. If they are members-only, provide cookies from a member account.',
     hintOther: '{n} video(s) failed for other reasons. See the log below.',
+    hintMembersWithCookies: '{n} members-only video(s): YouTube still refused even with cookies. Make sure the account signed in to that browser has joined this channel\'s membership (try playing one in that browser).',
+    hintAgeWithCookies: '{n} age-restricted video(s) failed even with cookies. Check that the system check shows Node.js 22 or newer (yt-dlp needs it for signed-in downloads) and that the signed-in account can play these videos.',
+    hintFormatWithCookies: '{n} video(s) have no downloadable format. With cookies, yt-dlp needs Node.js 22 or newer to read YouTube\'s video links. Check the Node.js version in the system check.',
+    sysNodeOld: '⚠ Node.js {version} is too old: downloads with cookies (members-only / age-restricted) need Node.js 22 or newer. Please update from nodejs.org.',
     cookieHint: '⚠ Some videos need a signed-in account. Choose a browser or upload cookies.txt, then download again.'
   },
   zh: {
@@ -172,6 +176,10 @@ const i18n = {
     hintFormat: '{n} 支影片沒有可下載的格式（通常是受 DRM 保護的內容）。',
     hintUnavailable: '{n} 支影片無法取得：可能已刪除、設為私人或為會員限定。若是會員限定，請提供已加入會員帳號的 cookies。',
     hintOther: '{n} 支影片因其他原因失敗，請查看下方 log。',
+    hintMembersWithCookies: '{n} 支會員限定影片：已提供 cookies，YouTube 仍拒絕。請確認該瀏覽器登入的帳號已加入此頻道會員（可先在該瀏覽器播放看看）。',
+    hintAgeWithCookies: '{n} 支年齡限制影片：已提供 cookies 仍失敗。請確認系統檢查顯示 Node.js 22 以上（yt-dlp 需要它處理登入後的下載），以及該帳號能播放這些影片。',
+    hintFormatWithCookies: '{n} 支影片沒有可下載的格式：使用 cookies 時，yt-dlp 需要 Node.js 22 以上才能取得 YouTube 的影片連結。請確認系統檢查顯示的 Node.js 版本。',
+    sysNodeOld: '⚠ Node.js {version} 版本過舊：帶 cookies 下載（會員限定、年齡限制）需要 Node.js 22 以上，請到 nodejs.org 更新。',
     cookieHint: '⚠ 部分影片需要登入才能下載：請選擇瀏覽器或上傳 cookies.txt 後重新下載。'
   }
 };
@@ -272,9 +280,17 @@ const checkDependencies = async () => {
     const data = await res.json();
 
     if (data.ready) {
-      systemStatus.textContent = `${t('sysReady')} — yt-dlp ${data.ytDlpVersion}`;
+      systemStatus.textContent = `${t('sysReady')} — yt-dlp ${data.ytDlpVersion} · Node.js ${data.node.version}`;
       systemStatus.className = 'text-xs text-center text-green-600 mt-2 font-semibold';
       downloadBtn.disabled = false;
+      // Public videos still work with an old Node.js, so only warn
+      if (!data.node.supported) {
+        const warning = document.createElement('div');
+        warning.className = 'text-yellow-700';
+        warning.textContent = t('sysNodeOld').replace('{version}', data.node.version);
+        systemStatus.appendChild(warning);
+        appendLog(warning.textContent, 'error');
+      }
     } else {
       systemStatus.textContent = `${t('sysFailed')} yt-dlp: ${data.ytDlp ? '✅' : '❌'}, FFmpeg: ${data.ffmpeg ? '✅' : '❌'}, Python: ${data.python ? '✅' : '❌'}`;
       systemStatus.className = 'text-xs text-center text-red-600 mt-2 font-bold';
@@ -333,6 +349,13 @@ const CATEGORY_HINTS: Record<ErrorCategory, keyof typeof i18n['en']> = {
   other: 'hintOther',
 };
 
+// With cookies already given, explain what else to check instead of asking for cookies again
+const CATEGORY_HINTS_WITH_COOKIES: Partial<Record<ErrorCategory, keyof typeof i18n['en']>> = {
+  members: 'hintMembersWithCookies',
+  age: 'hintAgeWithCookies',
+  format: 'hintFormatWithCookies',
+};
+
 const COOKIE_HIGHLIGHT = ['ring-2', 'ring-red-500', 'rounded-md', 'p-2'];
 
 const setCookieHighlight = (on: boolean) => {
@@ -354,7 +377,10 @@ const showSummary = (summary: DownloadSummary) => {
 
   const hints = (Object.keys(CATEGORY_HINTS) as ErrorCategory[])
     .filter((category) => summary.categories[category])
-    .map((category) => t(CATEGORY_HINTS[category]).replace('{n}', String(summary.categories[category])));
+    .map((category) => {
+      const key = (summary.usedCookies && CATEGORY_HINTS_WITH_COOKIES[category]) || CATEGORY_HINTS[category];
+      return t(key).replace('{n}', String(summary.categories[category]));
+    });
 
   const title = document.createElement('div');
   title.className = 'font-bold';

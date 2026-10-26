@@ -27,7 +27,7 @@ A lightweight, local web-based tool to download YouTube videos or entire channel
 
 To run this application, you must have the following installed on your system:
 
-1.  [Node.js](https://nodejs.org/) v18 or higher.
+1.  [Node.js](https://nodejs.org/) v22 or higher recommended (v18 works for public videos). `yt-dlp` uses the same Node.js to solve YouTube's JavaScript challenges, which is required when downloading with cookies (members-only / age-restricted videos).
 2.  **macOS / Linux only:** [Python 3.9+](https://www.python.org/downloads/) (`python3` must be on your PATH; the `yt-dlp` build for these systems runs on Python). Windows does not need Python.
 
 `yt-dlp` and FFmpeg are downloaded automatically by `npm install` (via `youtube-dl-exec` and `ffmpeg-static`).
@@ -101,6 +101,7 @@ To start things manually instead:
 
 -   **"Port 3000/5173 is already in use"** or **the page looks like an older version**: another copy of the app is still running. Close its "YouTube Downloader Backend/Frontend" windows. If you cannot find them, run `netstat -ano | findstr ":3000 :5173"` (Windows) or `lsof -i :3000 -i :5173` (macOS/Linux) and stop the listed PID with `taskkill /PID <PID> /F` or `kill <PID>`. Then start the app again.
 
+-   **"Requested format is not available" only when cookies are used**, or age-restricted videos failing even though your account can play them: `yt-dlp` needs a JavaScript runtime for signed-in downloads. The app uses the Node.js it runs on, which must be v22 or newer; the system check shows the version. Update Node.js from [nodejs.org](https://nodejs.org/) and restart the app.
 -   **Members-only or age-restricted videos** ("This video is not available", "Sign in to confirm your age"): these need a signed-in account. Members-only videos need an account that has joined the channel's membership; age-restricted videos need an age-verified account. Upload a `cookies.txt` exported from that account (see the [yt-dlp guide on exporting YouTube cookies](https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies)) or choose the browser you are signed in with. Keep `cookies.txt` private: it works like your login.
 
 -   **"System Check Failed"**: Run `npm install` again in the `server` folder so the yt-dlp binary is downloaded (on Windows, run `set YOUTUBE_DL_SKIP_PYTHON_CHECK=1` first if Python is not installed). On macOS/Linux, also make sure `python3` (3.9+) is installed.

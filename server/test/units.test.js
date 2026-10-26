@@ -97,3 +97,15 @@ test('parseProgressLine', () => {
   assert.deepStrictEqual(parseProgressLine('[download] Sleeping 12.50 seconds ...'), { type: 'sleep', seconds: 12.5 });
   assert.strictEqual(parseProgressLine('[youtube] abc: Downloading webpage'), null);
 });
+
+test('jsRuntimeFlags points yt-dlp at Node.js 22+ only', () => {
+  const { jsRuntimeFlags, isNodeSupported } = require('../src/ytdlp');
+  assert.deepStrictEqual(jsRuntimeFlags('22.0.0', 'C:\\Program Files\\nodejs\\node.exe'), { jsRuntimes: 'node:C:\\Program Files\\nodejs\\node.exe' });
+  assert.deepStrictEqual(jsRuntimeFlags('24.20.0', '/usr/bin/node'), { jsRuntimes: 'node:/usr/bin/node' });
+  assert.deepStrictEqual(jsRuntimeFlags('20.18.0', '/usr/bin/node'), {});
+  assert.strictEqual(isNodeSupported('21.9.9'), false);
+
+  // Download flags include it for the Node.js running the tests (CI and dev use 22+)
+  const flags = buildDownloadFlags({ outputDir: '/out', archivePath: '/out/a.txt', quality: 'best' });
+  if (isNodeSupported()) assert.strictEqual(flags.jsRuntimes, `node:${process.execPath}`);
+});

@@ -1,10 +1,26 @@
 const express = require('express');
 const fs = require('fs');
+const path = require('path');
 const { DEFAULT_DOWNLOAD_DIR } = require('../config');
 const { parseVideoUrl, isValidDownloadPath, parseBrowser, parseQuality } = require('../validation');
 const { createCookieFile, removeFile, cookieFlags } = require('../cookies');
 const { resolveTarget, listEntries, readArchiveIds, buildPlan } = require('../library');
 const { createFailureTracker } = require('../errors');
+const { createRunLog } = require('../runlog');
+
+const LOG_DIR_NAME = 'logs';
+
+// One line for the run log file, or null for events that are too frequent to keep
+const describeEvent = (type, data) => {
+  switch (type) {
+    case 'progress': return null;
+    case 'log': return data.raw;
+    case 'item': return `[item] ${data.index}/${data.total}`;
+    case 'download-plan': return `[plan] total=${data.total} downloaded=${data.downloaded} pending=${data.pending}`;
+    case 'summary': return `[summary] ${JSON.stringify(data)}`;
+    default: return `[${type}] ${data.message}${data.category ? ` (category: ${data.category})` : ''}`;
+  }
+};
 const ytdlp = require('../ytdlp');
 
 const router = express.Router();
@@ -51,7 +67,12 @@ router.post('/download', async (req, res) => {
   res.setHeader('Connection', 'keep-alive');
   res.flushHeaders();
 
+  // Every download also writes <channel>/logs/<timestamp>.log (kept even if the page is closed)
+  const runLog = createRunLog();
+
   const sendEvent = (type, data) => {
+    const line = describeEvent(type, data);
+    if (line !== null) runLog.write(line);
     if (res.writableEnded || res.destroyed) return;
     res.write(`event: ${type}\n`);
     res.write(`data: ${JSON.stringify(data)}\n\n`);
@@ -66,6 +87,7 @@ router.post('/download', async (req, res) => {
   // fires once the request body has been read, so it cannot be used to detect a disconnect.)
   res.on('close', () => {
     clientGone = !res.writableFinished;
+    if (clientGone) runLog.write('[cancelled] The page was closed or the download was cancelled');
     if (subprocess && !finished) {
       // Client cancelled or closed the page: stop yt-dlp instead of downloading in the background
       subprocess.kill();
@@ -77,7 +99,8 @@ router.post('/download', async (req, res) => {
   const fail = (message) => {
     removeFile(cookieFilePath);
     sendEvent('error', { message });
-    res.end();
+    if (!res.writableEnded && !res.destroyed) res.end();
+    runLog.close();
   };
 
   if (cookieContent) {
@@ -93,6 +116,9 @@ router.post('/download', async (req, res) => {
 
   // Look up the channel / playlist first to decide the folder and show what is pending
   const baseDir = downloadPath || DEFAULT_DOWNLOAD_DIR;
+  // Record the request without any cookie contents
+  const cookieSource = cookieFilePath ? 'cookies.txt' : (browser ? `browser:${browser}` : 'none');
+  runLog.write(`[request] url=${url} quality=${quality} path=${baseDir} cookies=${cookieSource} metadata=${JSON.stringify(metadata || {})}`);
   let target;
   let entries = [];
   try {
@@ -109,7 +135,10 @@ router.post('/download', async (req, res) => {
     target = resolveTarget({ channel: 'Downloads' }, baseDir);
   }
 
-  if (clientGone) return removeFile(cookieFilePath);
+  if (clientGone) {
+    removeFile(cookieFilePath);
+    return runLog.close();
+  }
 
   // Archive contents before the download: used for the plan now and to count successes later
   let archivedBefore = new Set();
@@ -150,6 +179,14 @@ router.post('/download', async (req, res) => {
     return fail(`Failed to create directory: ${err.message}`);
   }
 
+  try {
+    const logPath = runLog.open(path.join(path.dirname(target.archivePath), LOG_DIR_NAME));
+    sendEvent('info', { message: `Log file: ${logPath}` });
+  } catch (err) {
+    // The download still works without a log file
+    sendEvent('info', { message: `Could not create log file: ${err.message}` });
+  }
+
   const flags = ytdlp.buildDownloadFlags({
     outputDir: target.outputDir,
     archivePath: target.archivePath,
@@ -185,22 +222,24 @@ router.post('/download', async (req, res) => {
     // The promise rejects when yt-dlp fails or is killed; results are handled via events below
     subprocess.catch(() => {});
 
+    // Events after a disconnect are only written to the log file (sendEvent skips the response)
     subprocess.on('close', (code) => {
       finished = true;
       removeFile(cookieFilePath);
-      if (clientGone) return;
       sendSummary();
       if (code === 0) {
         sendEvent('complete', { message: 'Download completed successfully!' });
+      } else if (clientGone) {
+        sendEvent('info', { message: 'Download stopped because it was cancelled.' });
       } else {
         sendEvent('error', { message: `Process exited with code ${code}` });
       }
-      res.end();
+      if (!res.writableEnded && !res.destroyed) res.end();
+      runLog.close();
     });
 
     subprocess.on('error', (err) => {
       finished = true;
-      if (clientGone) return removeFile(cookieFilePath);
       fail(`Spawn error: ${err.message}`);
     });
   } catch (err) {

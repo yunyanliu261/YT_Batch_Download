@@ -19,6 +19,7 @@ A lightweight, local web-based tool to download YouTube videos or entire channel
   - Info JSON (video description, tags, etc.)
 - **Custom Download Path**: Specify exactly where files should be saved on your machine.
 - **Real-time Progress**: Progress bars for the current file and the whole playlist/channel, plus the download log. Downloads can be cancelled at any time.
+- **Download Logs**: Each download saves a log file in `<channel folder>/logs/`, and the "Save log" button saves the on-screen log as a `.txt` file. Attach these when reporting a problem.
 - **Clear Error Explanations**: When a download finishes, a summary shows how many videos were downloaded, skipped or failed, and why (members-only, age-restricted, bot check, private, region-blocked, DRM). If signing in would help, the Cookies option is highlighted.
 - **Rate Limit Protection**: When downloading a playlist or channel, the app waits a random 5–30 seconds before each video to avoid being blocked by YouTube. Single videos start immediately.
 - **Always Up to Date**: The bundled `yt-dlp` is updated automatically every time the server starts.
@@ -98,6 +99,8 @@ To start things manually instead:
 7.  Click **Start Download**. The "Progress Log" will display real-time updates as `yt-dlp` processes your request.
 
 ## Troubleshooting
+
+-   **Finding the log**: look in `<download path>/<channel>/logs/` for a file named after the date and time of the download, or press "Save log" next to the progress log. The log never contains your cookie contents.
 
 -   **"Port 3000/5173 is already in use"** or **the page looks like an older version**: another copy of the app is still running. Close its "YouTube Downloader Backend/Frontend" windows. If you cannot find them, run `netstat -ano | findstr ":3000 :5173"` (Windows) or `lsof -i :3000 -i :5173` (macOS/Linux) and stop the listed PID with `taskkill /PID <PID> /F` or `kill <PID>`. Then start the app again.
 

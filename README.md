@@ -6,6 +6,10 @@ A lightweight, local web-based tool to download YouTube videos or entire channel
 
 [Repository Link: https://github.com/yunyanliu261/YT_Batch_Download](https://github.com/yunyanliu261/YT_Batch_Download)
 
+<p align="center">
+  <img src="docs/images/screenshot-en.png" alt="YouTube Downloader main page (English)" width="600">
+</p>
+
 ## Features
 
 - **Dual-Language UI**: Seamlessly switch between English and Traditional Chinese (繁體中文). Your preference is saved automatically.

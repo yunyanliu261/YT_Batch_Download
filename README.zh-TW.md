@@ -6,6 +6,10 @@
 
 [專案網址：https://github.com/yunyanliu261/YT_Batch_Download](https://github.com/yunyanliu261/YT_Batch_Download)
 
+<p align="center">
+  <img src="docs/images/screenshot-zh-TW.png" alt="YouTube 影片下載器主畫面（繁體中文）" width="600">
+</p>
+
 ## 功能
 
 - **雙語介面**：可隨時切換英文與繁體中文，選擇會自動記住。

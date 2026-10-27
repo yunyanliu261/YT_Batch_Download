@@ -41,17 +41,17 @@
 
 ## 安裝與執行（Windows）
 
-Windows 上的啟動流程全自動。
-
 1.  將此專案 clone 或下載到電腦上。
-2.  雙擊根目錄中的 `start_app.bat`。
-3.  腳本會自動：
-    - 檢查是否已安裝 Node.js。
-    - 檢查連接埠 3000 與 5173 是否可用。如果另一份程式（例如舊版本）還在執行，會說明如何關閉它，而不會啟動。
-    - 為伺服器與前端安裝所需套件（若尚未安裝）。
-    - 在背景啟動後端伺服器（連接埠 3000）與前端介面伺服器。
-    - 用預設瀏覽器開啟程式頁面。
-4.  要關閉程式時，關掉「YouTube Downloader Backend」與「YouTube Downloader Frontend」兩個視窗。啟動錯誤會留在這兩個視窗中顯示。
+2.  雙擊專案資料夾中的 **`YouTube Downloader.vbs`**。
+    - **第一次執行**（或更新後需要安裝新套件時）：會出現一個視窗顯示安裝進度，完成後自動關閉。
+    - 之後程式會**在背景啟動，不會出現任何視窗**，並用瀏覽器開啟 `http://localhost:3000`。
+    - 如果程式已經在執行，再雙擊一次只會重新開啟頁面。
+    - 啟動失敗時，會跳出訊息視窗顯示錯誤內容。
+3.  **要關閉程式時**，按頁面左上角的「**⏻ 結束程式**」，或雙擊 `stop_app.bat`（頁面已經關掉時適用）。正在進行的下載會停止。
+
+`start_app.bat` 的功能相同，但會保留一個「YouTube Downloader」視窗顯示伺服器訊息，適合用來排查問題。關掉該視窗或按「結束程式」即可停止。
+
+程式在背景執行時，伺服器訊息會寫到 `server\server.log`，啟動過程的訊息寫到 `launcher.log`。
 
 ## 安裝與執行（Mac / Linux）
 
@@ -61,37 +61,17 @@ Windows 上的啟動流程全自動。
 ./start_app.sh
 ```
 
-它會安裝缺少的套件，在背景啟動後端、在前景啟動前端，並開啟瀏覽器。按 `Ctrl+C` 會同時關閉兩者。
+它會安裝缺少的套件、建置頁面、啟動伺服器，並用瀏覽器開啟 `http://localhost:3000`。按 `Ctrl+C` 或頁面上的「結束程式」即可停止。
 
 如果要手動啟動：
 
-1.  **安裝後端套件：**
-    ```bash
-    cd server
-    npm install
-    ```
+```bash
+cd server && npm install && cd ..
+cd client && npm install && npm run build && cd ..
+cd server && node index.js
+```
 
-2.  **安裝前端套件：**
-    ```bash
-    cd ../client
-    npm install
-    ```
-
-3.  **啟動程式：**
-    需要開兩個終端機視窗。
-
-    *終端機 1（後端）：*
-    ```bash
-    cd server
-    node index.js
-    ```
-
-    *終端機 2（前端）：*
-    ```bash
-    cd client
-    npm run dev
-    ```
-    點選終端機 2 顯示的本機網址（通常是 `http://localhost:5173`）開啟介面。
+然後開啟 `http://localhost:3000`。
 
 ## 使用說明
 
@@ -109,7 +89,8 @@ Windows 上的啟動流程全自動。
 
 -   **找不到日誌檔**：到 `<下載路徑>/<頻道名稱>/logs/` 找以下載日期時間命名的檔案，或按進度日誌旁的「儲存 log」。日誌不會包含你的 cookie 內容。
 
--   **「連接埠 3000/5173 已被使用」**或**頁面看起來是舊版本**：另一份程式還在執行。關掉它的「YouTube Downloader Backend/Frontend」視窗。如果找不到這些視窗，執行 `netstat -ano | findstr ":3000 :5173"`（Windows）或 `lsof -i :3000 -i :5173`（macOS/Linux），再用 `taskkill /PID <PID> /F` 或 `kill <PID>` 結束列出的 PID，然後重新啟動程式。
+-   **「連接埠 3000 已被佔用」**：其他程式或本程式的舊版本正在使用連接埠 3000。請關掉舊版本的「YouTube Downloader Backend/Frontend」視窗。如果找不到這些視窗，執行 `netstat -ano | findstr ":3000"`（Windows）或 `lsof -i :3000`（macOS/Linux），再用 `taskkill /PID <PID> /F` 或 `kill <PID>` 結束列出的 PID，然後重新啟動程式。
+-   **用 `YouTube Downloader.vbs` 啟動後沒有反應 / 頁面沒有開啟**：改用 `start_app.bat` 啟動以查看完整訊息，並檢查 `server\server.log` 與 `launcher.log`。
 
 -   **只有使用 cookies 時出現「Requested format is not available」**，或帳號明明能播放、年齡限制影片卻下載失敗：登入後的下載需要 JavaScript 執行環境。本程式使用執行它的 Node.js，版本必須是 v22 以上；系統檢查會顯示目前版本。請到 [nodejs.org](https://nodejs.org/) 更新 Node.js 後重新啟動程式。
 -   **會員限定或年齡限制影片**（「This video is not available」、「Sign in to confirm your age」）：需要登入帳號。會員限定影片需要已加入該頻道會員的帳號；年齡限制影片需要通過年齡驗證的帳號。請上傳從該帳號匯出的 `cookies.txt`（參考 [yt-dlp 匯出 YouTube cookies 的說明](https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies)），或選擇已登入該帳號的瀏覽器。請妥善保管 `cookies.txt`，它的作用等同你的登入狀態。
@@ -133,4 +114,5 @@ Windows 上的啟動流程全自動。
 ## 開發
 
 -   執行後端測試：`cd server && npm test`
+-   修改頁面時即時預覽：先啟動伺服器（`cd server && node index.js`），再執行 `cd client && npm run dev`，開啟 `http://localhost:5173`。若沒有使用開發伺服器，修改後請在 `client` 執行 `npm run build`。
 -   設定 `SKIP_YTDLP_UPDATE=1` 可在啟動伺服器時略過 yt-dlp 更新檢查。

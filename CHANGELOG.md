@@ -4,12 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- `YouTube Downloader.vbs` (Windows): starts the app in the background without any console window and opens it in the browser. On first run it shows the installation in a window; if startup fails, a message box shows the error.
+- "⏻ Quit" button at the top left of the page and `stop_app.bat`, which stop the app. Downloads in progress are stopped and their logs say so.
+- Starting the app while it is already running just opens the page again.
+
+### Changed
+- The server now serves the built web page itself, so the app is a single process at **`http://localhost:3000`** (was two windows, with the page at `localhost:5173`). The start scripts build the page (`client/dist`) on every start.
+- `start_app.bat` runs the server in one "YouTube Downloader" window and has `background` and `install` modes; `start_app.sh` follows the same flow.
+- Background server output goes to `server/server.log`, launcher output to `launcher.log`.
+- `.bat` and `.vbs` files are checked out with CRLF line endings (`.gitattributes`).
+
+## [1.3.0] - 2026-10-27
+
 ### Documentation
 - Added a Traditional Chinese README (`README.zh-TW.md`) with language links at the top of both READMEs.
 - Added screenshots of the main page to both READMEs: English in `README.md`, Traditional Chinese in `README.zh-TW.md` (`docs/images/`).
 - README usage guide: fixed step numbering, added the Cookies (sign-in) step, and updated cookie wording to match the current UI.
-
-## [1.3.0] - 2026-10-27
 
 ### Added
 - Every download writes a log file to `<channel folder>/logs/<date-time>.log`, including all yt-dlp output, the plan, errors and the summary. It is written even if the page is closed or the download is cancelled. Cookie contents are never logged, only the source (`cookies.txt`, `browser:firefox`, or `none`).

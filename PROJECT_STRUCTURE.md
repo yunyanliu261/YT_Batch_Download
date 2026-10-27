@@ -10,7 +10,7 @@
 *   **`start_app.bat`**: Windows 專用的自動化啟動腳本。它會檢查系統是否安裝了 Node.js，自動為 `server` 與 `client` 安裝必要的套件 (`npm install`，並略過 Windows 不需要的 Python 檢查)，接著在背景啟動後端伺服器 (Port 3000)，並啟動前端 Vite 開發伺服器並自動開啟瀏覽器。
 *   **`scripts/check-ports.js`**: 啟動腳本在啟動前執行，檢查連接埠 3000 與 5173 是否已被佔用（例如舊版本仍在執行）；被佔用時會說明如何結束該程式，並停止啟動。
 *   **`start_app.sh`**: macOS / Linux 的啟動腳本，功能同上；後端在背景執行，前端在前景執行，按 `Ctrl+C` 會同時關閉兩者。
-*   **`README.md`**: 專案的主要說明文件，包含功能介紹、安裝步驟、使用指南以及常見問題排除 (Troubleshooting)。
+*   **`README.md`** / **`README.zh-TW.md`**: 專案的主要說明文件（英文 / 繁體中文），包含功能介紹、安裝步驟、使用指南以及常見問題排除 (Troubleshooting)。兩份內容相同，修改時請同步更新。
 *   **`CHANGELOG.md`**: 紀錄專案每次更新與修改的歷史紀錄。
 *   **`PROJECT_STRUCTURE.md`**: (本檔案) 詳細說明專案架構與各個檔案的用途。
 *   **`.gitignore`**: Git 版本控制的忽略清單，確保 `node_modules` 等暫存或依賴檔案不會被上傳到儲存庫中。

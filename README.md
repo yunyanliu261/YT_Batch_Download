@@ -1,5 +1,7 @@
 # YouTube Downloader Web Application
 
+**English** | [繁體中文](README.zh-TW.md)
+
 A lightweight, local web-based tool to download YouTube videos or entire channels with a simple UI. Built with Node.js (Express), Vite, TypeScript, and Tailwind CSS.
 
 [Repository Link: https://github.com/yunyanliu261/YT_Batch_Download](https://github.com/yunyanliu261/YT_Batch_Download)
@@ -91,12 +93,13 @@ To start things manually instead:
 
 1.  **Language Selection**: Use the toggle at the top right to select your preferred language.
 2.  **System Check**: Upon opening the page, look for the "System Check" indicator at the bottom. It should say "Ready" and show the detected yt-dlp version. The server checks for yt-dlp updates every time it starts.
-3.  **YouTube URL**: Paste the link to a video or a channel main page.
-3.  **Check URL**: Click this button *before* downloading. It will query YouTube and display the video title, uploader name, and how many videos will be downloaded (useful for channels).
-4.  **Download Path**: (Optional) Enter an absolute path on your machine (e.g., `C:\Users\You\Downloads` or `/home/user/downloads`). If left empty, files will be saved in `server/downloads`.
-5.  **Quality**: Select your desired resolution.
-6.  **Download Metadata**: Use the checkboxes to select extra files you want saved alongside the video. Hover over the `?` icon for more information.
-7.  Click **Start Download**. The "Progress Log" will display real-time updates as `yt-dlp` processes your request.
+3.  **YouTube URL**: Paste the link to a video, a playlist or a channel main page.
+4.  **Check URL**: Click this button *before* downloading. It will query YouTube and display the video title, uploader name, and how many videos will be downloaded (useful for channels).
+5.  **Download Path**: (Optional) Enter an absolute path on your machine (e.g., `C:\Users\You\Downloads` or `/home/user/downloads`). If left empty, files will be saved in `server/downloads`. Tick "Remember Path" to keep it for next time.
+6.  **Quality**: Select your desired resolution.
+7.  **Cookies (sign-in)**: (Optional) Only needed for members-only or age-restricted videos. Upload a `cookies.txt` (recommended) or choose the browser you are signed in with.
+8.  **Download Metadata**: Use the checkboxes to select extra files you want saved alongside the video. Hover over the `?` icon for more information.
+9.  Click **Start Download**. The "Progress Log" will display real-time updates as `yt-dlp` processes your request.
 
 ## Troubleshooting
 
@@ -108,10 +111,10 @@ To start things manually instead:
 -   **Members-only or age-restricted videos** ("This video is not available", "Sign in to confirm your age"): these need a signed-in account. Members-only videos need an account that has joined the channel's membership; age-restricted videos need an age-verified account. Upload a `cookies.txt` exported from that account (see the [yt-dlp guide on exporting YouTube cookies](https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies)) or choose the browser you are signed in with. Keep `cookies.txt` private: it works like your login.
 
 -   **"System Check Failed"**: Run `npm install` again in the `server` folder so the yt-dlp binary is downloaded (on Windows, run `set YOUTUBE_DL_SKIP_PYTHON_CHECK=1` first if Python is not installed). On macOS/Linux, also make sure `python3` (3.9+) is installed.
--   **403 Forbidden / Sign in to confirm your age**: Some videos are age-restricted. You can bypass this by using the "Browser Cookies" dropdown in the UI to authenticate using your local browser session.
+-   **403 Forbidden / Sign in to confirm your age**: Some videos are age-restricted. You can bypass this by using the "Cookies (sign-in)" option in the UI to authenticate with your signed-in account.
 -   **Files missing audio/video**: Ensure FFmpeg is available on your system so the tool can merge the best video and best audio streams together.
 -   **"Requested format is not available"**: If you see this error (often on official music videos or premium content), it means the video is protected by DRM (Digital Rights Management). `yt-dlp` cannot download DRM-protected content.
--   **"Could not copy Chrome cookie database"**: If you selected Chrome in the Browser Cookies dropdown and see this error, it means Chrome is currently running and has locked its cookie file. You must completely close Chrome (including background processes via the system tray or Task Manager) before attempting the download again, or choose a different browser like Firefox or Edge.
+-   **"Could not copy Chrome cookie database"**: If you selected Chrome in the "Cookies (sign-in)" dropdown and see this error, it means Chrome is currently running and has locked its cookie file. You must completely close Chrome (including background processes via the system tray or Task Manager) before attempting the download again, or choose another browser such as Firefox, or upload a `cookies.txt` instead.
 
 ## Tech Stack
 

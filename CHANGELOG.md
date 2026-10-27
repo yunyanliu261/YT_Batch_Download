@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-10-27
+
+### Added
+- Every download writes a log file to `<channel folder>/logs/<date-time>.log`, including all yt-dlp output, the plan, errors and the summary. It is written even if the page is closed or the download is cancelled. Cookie contents are never logged, only the source (`cookies.txt`, `browser:firefox`, or `none`).
+- "Save log" button next to the progress log, which saves the complete log of the current download as a `.txt` file (the on-screen log keeps only the latest 2000 lines).
+- Warning when Chrome or Edge is selected as the cookie source on Windows, where yt-dlp usually cannot read their cookies.
+
+### Changed
+- Clearer Cookies section: label "Cookies (sign-in)", default option "Don't use cookies", upload field marked as recommended, and a tooltip explaining when cookies are needed and which browsers work.
+- A cancelled download is reported as "Download stopped because it was cancelled" instead of "Process exited with code null".
+
 ## [1.2.0] - 2026-10-26
 
 ### Security

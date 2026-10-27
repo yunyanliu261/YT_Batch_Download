@@ -12,7 +12,7 @@ const commandWorks = (cmd, args) =>
 
 // Health check
 router.get('/health', (req, res) => {
-  res.json({ status: 'ok', version: '1.2.0' });
+  res.json({ status: 'ok', version: '1.3.0' });
 });
 
 /**

@@ -19,6 +19,8 @@ const subCheckboxes = [metaSubs, metaThumb, metaJson];
 
 const downloadBtn = document.getElementById('download-btn') as HTMLButtonElement;
 const cancelBtn = document.getElementById('cancel-btn') as HTMLButtonElement;
+const saveLogBtn = document.getElementById('save-log-btn') as HTMLButtonElement;
+const browserWarning = document.getElementById('auth-browser-warning') as HTMLParagraphElement;
 
 // Summary and cookie hint elements
 const summaryPanel = document.getElementById('summary-panel') as HTMLDivElement;
@@ -58,9 +60,13 @@ const i18n = {
     qualityLabel: 'Quality / Format',
     qualityBest: 'Best Quality (Video+Audio)',
     qualityAudio: 'Audio Only (MP3)',
-    cookieLabel: 'Cookies (Optional)',
-    cookieTooltip: 'Select your browser to bypass age restrictions. If extraction fails, try closing the browser first.',
-    cookieNone: 'None (Public Video)',
+    cookieLabel: 'Cookies (sign-in)',
+    cookieTooltip: 'Members-only and age-restricted videos need a signed-in account. This lets yt-dlp use your YouTube login. Firefox works directly. On Windows, Chrome/Edge cookies usually cannot be read, so upload cookies.txt instead. An uploaded file is used instead of the browser.',
+    cookieNone: "Don't use cookies",
+    cookieUploadLabel: 'Or upload cookies.txt (recommended, Netscape format):',
+    cookieChromiumWarning: '⚠ On Windows, yt-dlp usually cannot read Chrome/Edge cookies. Use Firefox or upload cookies.txt instead.',
+    saveLog: 'Save log',
+    logEmpty: 'The log is empty.',
     metadataLabel: 'Download Metadata',
     metadataTooltip: 'Extra files saved alongside your video (e.g., .vtt for subs, .webp for thumbnails, .json for description and tags).',
     selectAll: 'Select All',
@@ -126,9 +132,13 @@ const i18n = {
     qualityLabel: '畫質 / 格式',
     qualityBest: '最佳畫質 (影片+音訊)',
     qualityAudio: '僅音訊 (MP3)',
-    cookieLabel: '載入瀏覽器 Cookie (可選)',
-    cookieTooltip: '若遇到「Could not copy cookie database」錯誤，請先關閉該瀏覽器再試一次。',
-    cookieNone: '無 (公開影片)',
+    cookieLabel: 'Cookies（登入用）',
+    cookieTooltip: '會員限定、年齡限制影片需要登入才能下載。這裡讓 yt-dlp 使用你的 YouTube 登入狀態。Firefox 可直接讀取；Windows 上的 Chrome/Edge 通常讀不到，請改上傳 cookies.txt。有上傳檔案時會優先使用檔案。',
+    cookieNone: '不使用 Cookies',
+    cookieUploadLabel: '或上傳 cookies.txt（建議，Netscape 格式）：',
+    cookieChromiumWarning: '⚠ Windows 上 yt-dlp 通常無法讀取 Chrome/Edge 的 cookies，建議改用 Firefox 或上傳 cookies.txt。',
+    saveLog: '儲存 log',
+    logEmpty: 'log 是空的。',
     metadataLabel: '下載中介資料 (Metadata)',
     metadataTooltip: '與影片一併儲存的額外檔案 (例如：.vtt 字幕、.webp 縮圖、.json 影片資訊與標籤)。',
     selectAll: '全選 (Select All)',
@@ -238,9 +248,13 @@ langEnBtn.addEventListener('click', () => {
 
 
 // --- Logger ---
+// Complete log for "Save log" (the on-screen log keeps only the latest MAX_LOG_LINES lines)
+let fullLog: string[] = [];
+
 const appendLog = (message: string, type: 'info' | 'error' | 'success' | 'progress' = 'info') => {
   const div = document.createElement('div');
   div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+  fullLog.push(div.textContent);
 
   if (type === 'error') div.className = 'text-red-500 font-bold';
   else if (type === 'success') div.className = 'text-green-300 font-bold';
@@ -256,7 +270,21 @@ const appendLog = (message: string, type: 'info' | 'error' | 'success' | 'progre
 
 const clearLogs = () => {
   logContainer.innerHTML = '';
+  fullLog = [];
 };
+
+saveLogBtn.addEventListener('click', () => {
+  if (fullLog.length === 0) return alert(t('logEmpty'));
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const d = new Date();
+  const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+  const blob = new Blob([fullLog.join('\r\n') + '\r\n'], { type: 'text/plain;charset=utf-8' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `yt-download-log-${stamp}.txt`;
+  link.click();
+  URL.revokeObjectURL(link.href);
+});
 
 // --- Initialization ---
 // Load Saved Preferences
@@ -412,6 +440,14 @@ const showSummary = (summary: DownloadSummary) => {
 
 // Clear the highlight once the user picks a cookie source
 cookieSelect.addEventListener('change', () => setCookieHighlight(false));
+
+// Chrome/Edge encrypt cookies on Windows in a way yt-dlp cannot read (App-Bound Encryption)
+const IS_WINDOWS = /Windows/i.test(navigator.userAgent);
+const updateBrowserWarning = () => {
+  browserWarning.classList.toggle('hidden', !(IS_WINDOWS && ['chrome', 'edge'].includes(cookieSelect.value)));
+};
+cookieSelect.addEventListener('change', updateBrowserWarning);
+updateBrowserWarning();
 cookieFileInput.addEventListener('change', () => setCookieHighlight(false));
 
 // --- Handlers ---

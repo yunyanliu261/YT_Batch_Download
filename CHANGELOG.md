@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Documentation
+- Added a Traditional Chinese README (`README.zh-TW.md`) with language links at the top of both READMEs.
+- README usage guide: fixed step numbering, added the Cookies (sign-in) step, and updated cookie wording to match the current UI.
+
 ## [1.3.0] - 2026-10-27
 
 ### Added

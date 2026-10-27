@@ -7,4 +7,6 @@ module.exports = {
   // Default download directory (server/downloads)
   DEFAULT_DOWNLOAD_DIR: path.join(__dirname, '..', 'downloads'),
   ARCHIVE_FILE_NAME: 'download_archive.txt',
+  // Built web page (client: npm run build), served by this server so only one process is needed
+  CLIENT_DIST_DIR: path.join(__dirname, '..', '..', 'client', 'dist'),
 };

@@ -20,6 +20,7 @@ const subCheckboxes = [metaSubs, metaThumb, metaJson];
 const downloadBtn = document.getElementById('download-btn') as HTMLButtonElement;
 const cancelBtn = document.getElementById('cancel-btn') as HTMLButtonElement;
 const saveLogBtn = document.getElementById('save-log-btn') as HTMLButtonElement;
+const quitBtn = document.getElementById('quit-btn') as HTMLButtonElement;
 const browserWarning = document.getElementById('auth-browser-warning') as HTMLParagraphElement;
 
 // Summary and cookie hint elements
@@ -67,6 +68,10 @@ const i18n = {
     cookieChromiumWarning: '⚠ On Windows, yt-dlp usually cannot read Chrome/Edge cookies. Use Firefox or upload cookies.txt instead.',
     saveLog: 'Save log',
     logEmpty: 'The log is empty.',
+    quitApp: '⏻ Quit',
+    confirmQuit: 'Quit YouTube Downloader? Downloads in progress will be stopped.',
+    quitDone: 'YouTube Downloader has stopped. You can close this tab. Start it again with "YouTube Downloader.vbs" (Windows) or start_app.bat / start_app.sh.',
+    quitFailed: 'Could not stop the app: ',
     metadataLabel: 'Download Metadata',
     metadataTooltip: 'Extra files saved alongside your video (e.g., .vtt for subs, .webp for thumbnails, .json for description and tags).',
     selectAll: 'Select All',
@@ -139,6 +144,10 @@ const i18n = {
     cookieChromiumWarning: '⚠ Windows 上 yt-dlp 通常無法讀取 Chrome/Edge 的 cookies，建議改用 Firefox 或上傳 cookies.txt。',
     saveLog: '儲存 log',
     logEmpty: 'log 是空的。',
+    quitApp: '⏻ 結束程式',
+    confirmQuit: '確定要結束程式嗎？正在進行的下載會停止。',
+    quitDone: '程式已結束，可以關閉這個分頁。下次請用「YouTube Downloader.vbs」（Windows）或 start_app.bat / start_app.sh 啟動。',
+    quitFailed: '無法結束程式：',
     metadataLabel: '下載中介資料 (Metadata)',
     metadataTooltip: '與影片一併儲存的額外檔案 (例如：.vtt 字幕、.webp 縮圖、.json 影片資訊與標籤)。',
     selectAll: '全選 (Select All)',
@@ -272,6 +281,21 @@ const clearLogs = () => {
   logContainer.innerHTML = '';
   fullLog = [];
 };
+
+quitBtn.addEventListener('click', async () => {
+  if (!confirm(t('confirmQuit'))) return;
+  try {
+    const res = await fetch(`${API_BASE}/api/shutdown`, { method: 'POST' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  } catch (err: any) {
+    return alert(`${t('quitFailed')}${err.message}`);
+  }
+  // Replace the page with a short notice; nothing on it works without the server
+  const notice = document.createElement('div');
+  notice.className = 'bg-white p-8 rounded-lg shadow-xl w-full max-w-2xl text-center text-gray-700';
+  notice.textContent = t('quitDone');
+  document.body.replaceChildren(notice);
+});
 
 saveLogBtn.addEventListener('click', () => {
   if (fullLog.length === 0) return alert(t('logEmpty'));

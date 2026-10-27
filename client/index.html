@@ -11,11 +11,15 @@
     <!-- Main Container -->
     <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-2xl space-y-6 relative">
 
-      <!-- Language Toggle -->
-      <div class="absolute top-4 right-4 flex space-x-2 text-sm text-gray-500">
-        <button id="lang-zh" class="hover:text-blue-600 transition font-semibold">繁體中文</button>
-        <span>|</span>
-        <button id="lang-en" class="hover:text-blue-600 transition font-semibold">English</button>
+      <!-- Top bar: Quit (stops the app, useful when it runs in the background without a window)
+           and the language toggle. One element, because the card's space-y-6 would push a second one down. -->
+      <div class="absolute top-4 left-4 right-4 flex justify-between text-sm text-gray-500">
+        <button id="quit-btn" data-i18n="quitApp" class="hover:text-red-600 transition font-semibold">Quit</button>
+        <div class="flex space-x-2">
+          <button id="lang-zh" class="hover:text-blue-600 transition font-semibold">繁體中文</button>
+          <span>|</span>
+          <button id="lang-en" class="hover:text-blue-600 transition font-semibold">English</button>
+        </div>
       </div>
 
       <h1 data-i18n="appTitle" class="text-3xl font-bold text-gray-800 text-center mb-6 pt-4">YouTube Downloader</h1>

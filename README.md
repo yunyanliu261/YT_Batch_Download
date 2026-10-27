@@ -41,17 +41,17 @@ To run this application, you must have the following installed on your system:
 
 ## Installation & Running (Windows)
 
-For Windows users, starting the app is completely automated.
+1.  Clone or download this repository to your computer.
+2.  Double-click **`YouTube Downloader.vbs`** in the project folder.
+    - **First run** (or after an update that adds packages): a window shows the installation progress. It closes when done.
+    - After that, the app starts **in the background without any window** and the page opens in your browser at `http://localhost:3000`.
+    - If the app is already running, double-clicking just opens the page again.
+    - If something goes wrong, a message box shows the error.
+3.  **To stop the app**, press **"⏻ Quit"** at the top left of the page, or double-click `stop_app.bat` (useful when the page is already closed). Downloads in progress are stopped.
 
-1.  Clone or download this repository to your local machine.
-2.  Double-click the `start_app.bat` file in the root directory.
-3.  The script will automatically:
-    - Check if Node.js is installed.
-    - Check that ports 3000 and 5173 are free. If another copy of the app (for example an older version) is still running, it tells you how to stop it instead of starting.
-    - Install all necessary dependencies for the server and client (if missing).
-    - Start the backend server (Port 3000) and frontend UI server in the background.
-    - Open your default web browser to the application page.
-4.  To stop the application, close the "YouTube Downloader Backend" and "YouTube Downloader Frontend" windows. Startup errors stay visible in these windows.
+`start_app.bat` does the same with one visible "YouTube Downloader" window that shows the server messages, which is handy for troubleshooting. Close that window or press "Quit" to stop.
+
+When the app runs in the background, its messages are written to `server\server.log`, and launcher messages to `launcher.log`.
 
 ## Installation & Running (Mac/Linux)
 
@@ -61,37 +61,17 @@ Run the start script from the project folder:
 ./start_app.sh
 ```
 
-It installs missing dependencies, starts the backend in the background and the frontend in the foreground, and opens your browser. Press `Ctrl+C` to stop both.
+It installs missing dependencies, builds the page, starts the server and opens `http://localhost:3000` in your browser. Press `Ctrl+C`, or "Quit" on the page, to stop it.
 
 To start things manually instead:
 
-1.  **Install Backend Dependencies:**
-    ```bash
-    cd server
-    npm install
-    ```
+```bash
+cd server && npm install && cd ..
+cd client && npm install && npm run build && cd ..
+cd server && node index.js
+```
 
-2.  **Install Frontend Dependencies:**
-    ```bash
-    cd ../client
-    npm install
-    ```
-
-3.  **Start the Application:**
-    You will need two terminal windows.
-
-    *Terminal 1 (Backend):*
-    ```bash
-    cd server
-    node index.js
-    ```
-
-    *Terminal 2 (Frontend):*
-    ```bash
-    cd client
-    npm run dev
-    ```
-    Click the local link provided in Terminal 2 (usually `http://localhost:5173`) to open the UI.
+Then open `http://localhost:3000`.
 
 ## Usage Guide
 
@@ -109,7 +89,8 @@ To start things manually instead:
 
 -   **Finding the log**: look in `<download path>/<channel>/logs/` for a file named after the date and time of the download, or press "Save log" next to the progress log. The log never contains your cookie contents.
 
--   **"Port 3000/5173 is already in use"** or **the page looks like an older version**: another copy of the app is still running. Close its "YouTube Downloader Backend/Frontend" windows. If you cannot find them, run `netstat -ano | findstr ":3000 :5173"` (Windows) or `lsof -i :3000 -i :5173` (macOS/Linux) and stop the listed PID with `taskkill /PID <PID> /F` or `kill <PID>`. Then start the app again.
+-   **"Port 3000 is already in use"**: another program, or an older version of this app, is using port 3000. Close older versions' "YouTube Downloader Backend/Frontend" windows. If you cannot find them, run `netstat -ano | findstr ":3000"` (Windows) or `lsof -i :3000` (macOS/Linux) and stop the listed PID with `taskkill /PID <PID> /F` or `kill <PID>`. Then start the app again.
+-   **Nothing happens / the page does not open** when using `YouTube Downloader.vbs`: run `start_app.bat` instead to see all messages, and check `server\server.log` and `launcher.log`.
 
 -   **"Requested format is not available" only when cookies are used**, or age-restricted videos failing even though your account can play them: `yt-dlp` needs a JavaScript runtime for signed-in downloads. The app uses the Node.js it runs on, which must be v22 or newer; the system check shows the version. Update Node.js from [nodejs.org](https://nodejs.org/) and restart the app.
 -   **Members-only or age-restricted videos** ("This video is not available", "Sign in to confirm your age"): these need a signed-in account. Members-only videos need an account that has joined the channel's membership; age-restricted videos need an age-verified account. Upload a `cookies.txt` exported from that account (see the [yt-dlp guide on exporting YouTube cookies](https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies)) or choose the browser you are signed in with. Keep `cookies.txt` private: it works like your login.
@@ -133,4 +114,5 @@ To start things manually instead:
 ## Development
 
 -   Run the backend tests: `cd server && npm test`
+-   Live-reload while editing the page: start the server (`cd server && node index.js`), then run `cd client && npm run dev` and open `http://localhost:5173`. Without the dev server, run `npm run build` in `client` after changes.
 -   Set `SKIP_YTDLP_UPDATE=1` to skip the yt-dlp update check on server start.

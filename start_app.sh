@@ -1,13 +1,24 @@
 #!/usr/bin/env bash
-# Start the YouTube Downloader on macOS / Linux.
-# Starts the backend in the background and the frontend in the foreground; Ctrl+C stops both.
+# Start YouTube Downloader on macOS / Linux: builds the web page, starts the server and opens
+# http://localhost:3000 in the browser. Press Ctrl+C here, or "Quit" on the page, to stop it.
+# Set BROWSER=none to skip opening the browser.
 set -euo pipefail
 
 cd "$(dirname "$0")"
+URL="http://localhost:3000"
+
+open_page() {
+  if [ "${BROWSER:-}" = "none" ]; then return; fi
+  if command -v xdg-open >/dev/null 2>&1; then xdg-open "$URL" >/dev/null 2>&1 &
+  elif command -v open >/dev/null 2>&1; then open "$URL"
+  else echo "Open $URL in your browser."
+  fi
+}
+
 echo "Starting YouTube Downloader..."
 
 if ! command -v node >/dev/null 2>&1; then
-  echo "Node.js is not installed. Please install Node.js 18 or newer from https://nodejs.org/"
+  echo "Node.js is not installed. Please install Node.js 22 or newer from https://nodejs.org/"
   exit 1
 fi
 
@@ -23,8 +34,17 @@ if ! node -e "process.exit(Number(process.versions.node.split('.')[0]) < 22 ? 1 
   echo "    (members-only / age-restricted videos) need it. Update from https://nodejs.org/. Public videos still work."
 fi
 
-# Stop if another copy of the app (for example an older version) is still using the ports
-node scripts/check-ports.js || exit 1
+# Already running: just open the page. Port used by something else: explain and stop.
+set +e
+node scripts/check-ports.js
+port_status=$?
+set -e
+if [ "$port_status" -eq 2 ]; then
+  open_page
+  exit 0
+elif [ "$port_status" -ne 0 ]; then
+  exit 1
+fi
 
 # Install server dependencies if missing (also after updating from a version that used yt-dlp-exec)
 if [ ! -d server/node_modules/youtube-dl-exec ]; then
@@ -37,15 +57,20 @@ if [ ! -d client/node_modules ]; then
   (cd client && npm install)
 fi
 
-echo "Starting Backend Server..."
-(cd server && node index.js) &
-BACKEND_PID=$!
-trap 'kill "$BACKEND_PID" 2>/dev/null || true' EXIT INT TERM
+# Build the web page every time, so it always matches the current code (takes a few seconds)
+echo "Building the page..."
+(cd client && npm run build)
 
-# Wait a moment for the backend to initialize
-sleep 2
+(cd server && exec node index.js) &
+SERVER_PID=$!
+# The server stops downloads in progress when it gets SIGTERM
+trap 'kill "$SERVER_PID" 2>/dev/null || true' INT TERM
 
-echo "Starting Frontend Client (press Ctrl+C to stop)..."
-cd client
-# --strictPort: fail instead of silently using another port
-npm run dev -- --open --strictPort
+if ! node scripts/wait-for-server.js; then
+  kill "$SERVER_PID" 2>/dev/null || true
+  exit 1
+fi
+
+open_page
+echo "YouTube Downloader is running at $URL (press Ctrl+C or \"Quit\" on the page to stop)."
+wait "$SERVER_PID" || true

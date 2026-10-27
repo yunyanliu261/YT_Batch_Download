@@ -10,6 +10,16 @@ const { createRunLog } = require('../runlog');
 
 const LOG_DIR_NAME = 'logs';
 
+// Running yt-dlp processes, so they can be stopped when the app quits
+const activeDownloads = new Set();
+let shuttingDown = false;
+
+const stopAllDownloads = () => {
+  shuttingDown = true;
+  for (const child of activeDownloads) child.kill();
+  return activeDownloads.size;
+};
+
 // One line for the run log file, or null for events that are too frequent to keep
 const describeEvent = (type, data) => {
   switch (type) {
@@ -212,6 +222,7 @@ router.post('/download', async (req, res) => {
 
   try {
     subprocess = ytdlp.youtubedl.exec(url, flags);
+    activeDownloads.add(subprocess);
 
     forEachLine(subprocess.stdout, handleLine);
     forEachLine(subprocess.stderr, (line) => {
@@ -225,10 +236,13 @@ router.post('/download', async (req, res) => {
     // Events after a disconnect are only written to the log file (sendEvent skips the response)
     subprocess.on('close', (code) => {
       finished = true;
+      activeDownloads.delete(subprocess);
       removeFile(cookieFilePath);
       sendSummary();
       if (code === 0) {
         sendEvent('complete', { message: 'Download completed successfully!' });
+      } else if (shuttingDown) {
+        sendEvent('info', { message: 'Download stopped because the app was quit.' });
       } else if (clientGone) {
         sendEvent('info', { message: 'Download stopped because it was cancelled.' });
       } else {
@@ -240,6 +254,7 @@ router.post('/download', async (req, res) => {
 
     subprocess.on('error', (err) => {
       finished = true;
+      activeDownloads.delete(subprocess);
       fail(`Spawn error: ${err.message}`);
     });
   } catch (err) {
@@ -249,3 +264,4 @@ router.post('/download', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.stopAllDownloads = stopAllDownloads;

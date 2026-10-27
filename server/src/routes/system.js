@@ -10,9 +10,21 @@ const router = express.Router();
 const commandWorks = (cmd, args) =>
   new Promise((resolve) => execFile(cmd, args, (err) => resolve(!err)));
 
-// Health check
+// Health check. "ui" tells the start scripts that this server also serves the web page,
+// so a second launch can just open the browser instead of reporting a busy port
 router.get('/health', (req, res) => {
-  res.json({ status: 'ok', version: '1.3.0' });
+  res.json({ status: 'ok', version: '1.3.0', ui: Boolean(req.app.locals.hasClientBuild) });
+});
+
+/**
+ * Stop the app (the "Quit" button and stop_app.bat). Downloads in progress are stopped.
+ */
+router.post('/shutdown', (req, res) => {
+  const { shutdown } = req.app.locals;
+  if (!shutdown) return res.status(503).json({ error: 'Shutdown is not available' });
+  res.json({ status: 'stopping' });
+  // Let the response reach the page before the server goes away
+  res.on('finish', () => setTimeout(shutdown, 100));
 });
 
 /**
